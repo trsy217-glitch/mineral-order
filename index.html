@@ -478,7 +478,7 @@ body {
     </div>
     <div class="product-info">
       <span class="badge">유기이온미네랄</span>
-      <h2>MSA 미네랄</h2>
+      <h2>오륜 미네랄</h2>
       <p class="desc">
         생명체인 동·식물성(곤충 포함)에서 미네랄을 <strong>고농축으로 종합 추출</strong>하여 이온화시킨 다량미량의 종합미네랄입니다.
         인체는 미네랄을 스스로 합성할 수 없으며, <strong>반드시 외부에서 섭취</strong>해야 하는 필수 영양소입니다.
@@ -505,7 +505,7 @@ body {
           <canvas id="walletQR"></canvas>
         </div>
         <div class="wallet-address-box">
-          <p>아래 주소로 USDT를 송금해주세요</p>
+          <p>지갑 주소를 복사해 넣어주세요</p>
           <div class="wallet-address">
             <input type="text" id="walletAddr" readonly />
             <button type="button" class="btn-copy" onclick="copyWalletAddress()">복사</button>
@@ -822,7 +822,7 @@ async function confirmOrder() {
   const data = getFormData();
 
   try {
-    await fetch(https://script.google.com/macros/s/AKfycbyGjL84CO2kPSSFUtqnKLO4Pb-AYXpNUK98brjUrMBDxjMhE2ZQoMfHqQ6Hh6hEwb4mKw/exec, {
+    await fetch(SHEET_URL, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
