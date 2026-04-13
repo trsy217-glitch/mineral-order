@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>오륜 미네랄 - 주문 조회</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --mint: #e8f5e9;
+  --white: #ffffff;
+  --text-primary: #2e3a3f;
+  --text-secondary: #607d8b;
+  --accent: #43a047;
+  --accent-hover: #2e7d32;
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: linear-gradient(160deg, #e8f8e0 0%, #e3f2fd 50%, #f3e5f5 100%);
+  min-height: 100vh;
+  color: var(--text-primary);
+}
+
+.page-wrapper {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.header p {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+
+.header-links {
+  margin-top: 10px;
+}
+
+.header-links a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.8rem;
+  padding: 6px 14px;
+  border: 1.5px solid var(--accent);
+  border-radius: 20px;
+}
+
+.card {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 16px;
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--mint);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-title .icon {
+  width: 26px;
+  height: 26px;
+  background: var(--accent);
+  color: white;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.form-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.form-group input {
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 16px;
+  padding: 12px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: var(--radius-sm);
+  background: #fafafa;
+  outline: none;
+}
+
+.form-group input:focus {
+  border-color: var(--accent);
+  background: white;
+}
+
+.btn-search {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--accent), #66bb6a);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.btn-search:disabled { opacity: 0.6; }
+
+/* Results */
+.result-section { display: none; }
+.result-section.active { display: block; }
+
+.no-result {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+}
+
+.no-result .icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+}
+
+/* Order Card */
+.order-card {
+  border: 1px solid #e0e0e0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.order-header {
+  background: var(--mint);
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.order-number {
+  font-weight: 700;
+  color: var(--accent-hover);
+  font-size: 0.9rem;
+}
+
+.order-date {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.order-body { padding: 16px; }
+
+.order-info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #f5f5f5;
+  font-size: 0.85rem;
+}
+
+.order-info-row:last-child { border-bottom: none; }
+.order-info-row .label { color: var(--text-secondary); }
+.order-info-row .value { font-weight: 600; text-align: right; }
+
+/* Status */
+.status-tracker {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 2px solid var(--mint);
+}
+
+.status-tracker h4 {
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+}
+
+.status-steps {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  padding: 0 5px;
+}
+
+.status-steps::before {
+  content: '';
+  position: absolute;
+  top: 16px;
+  left: 20px;
+  right: 20px;
+  height: 3px;
+  background: #e0e0e0;
+}
+
+.status-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+  flex: 1;
+}
+
+.step-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+}
+
+.status-step.active .step-icon,
+.status-step.completed .step-icon {
+  background: var(--accent);
+  color: white;
+}
+
+.step-label {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.status-step.active .step-label,
+.status-step.completed .step-label {
+  color: var(--accent-hover);
+  font-weight: 600;
+}
+
+/* Tracking */
+.tracking-info {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: var(--radius-sm);
+}
+
+.tracking-info h5 {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.tracking-number {
+  font-family: monospace;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tracking-number a {
+  font-size: 0.8rem;
+  color: var(--accent);
+  text-decoration: none;
+  padding: 4px 10px;
+  border: 1px solid var(--accent);
+  border-radius: 20px;
+}
+
+/* Loading */
+.loading {
+  text-align: center;
+  padding: 40px;
+}
+
+.loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e0e0e0;
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 12px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 50px;
+  font-size: 0.85rem;
+  z-index: 3000;
+  display: none;
+}
+</style>
+</head>
+<body>
+<div class="page-wrapper">
+  <div class="header">
+    <h1>📦 주문 조회</h1>
+    <p>주문 상태 및 배송 현황</p>
+    <div class="header-links">
+      <a href="index.html">🛒 주문하기</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <span class="icon">🔍</span>
+      주문 조회
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>주문자 이름</label>
+        <input type="text" id="searchName" placeholder="홍길동" />
+      </div>
+      <div class="form-group">
+        <label>전화번호</label>
+        <input type="tel" id="searchPhone" inputmode="tel" placeholder="010-1234-5678" />
+      </div>
+    </div>
+    <button class="btn-search" id="btnSearch" onclick="searchOrder()">주문 조회하기</button>
+  </div>
+
+  <div class="card loading" id="loadingSection" style="display:none;">
+    <div class="loading-spinner"></div>
+    <p>조회 중...</p>
+  </div>
+
+  <div class="result-section" id="resultSection"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/************************************************************
+ * ⚠️ 설정
+ ************************************************************/
+const SHEET_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL';
+
+const STATUS_MAP = {
+  '주문접수': { step: 0, icon: '📝' },
+  '입금확인': { step: 1, icon: '✅' },
+  '배송준비': { step: 2, icon: '📦' },
+  '발송완료': { step: 3, icon: '🚚' },
+  '배송완료': { step: 4, icon: '🎉' },
+};
+
+const STATUS_LABELS = ['주문접수', '입금확인', '배송준비', '발송완료', '배송완료'];
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+// JSONP 콜백
+window.handleSearchResult = function(result) {
+  document.getElementById('loadingSection').style.display = 'none';
+  
+  if (result.success && result.orders && result.orders.length > 0) {
+    renderOrders(result.orders);
+  } else {
+    renderNoResult();
+  }
+};
+
+function searchOrder() {
+  const name = document.getElementById('searchName').value.trim();
+  const phone = document.getElementById('searchPhone').value.trim();
+
+  if (!name || !phone) {
+    showToast('이름과 전화번호 입력');
+    return;
+  }
+
+  document.getElementById('loadingSection').style.display = 'block';
+  document.getElementById('resultSection').classList.remove('active');
+  document.getElementById('resultSection').innerHTML = '';
+
+  // 먼저 localStorage 확인
+  const lastOrder = localStorage.getItem('lastOrder');
+  if (lastOrder) {
+    try {
+      const order = JSON.parse(lastOrder);
+      if (order.ordererName === name && order.ordererPhone === phone) {
+        document.getElementById('loadingSection').style.display = 'none';
+        renderOrders([{
+          orderNumber: order.orderNumber,
+          timestamp: order.timestamp,
+          status: '주문접수',
+          amount: '-',
+          address: '-',
+          trackingNumber: ''
+        }]);
+        return;
+      }
+    } catch(e) {}
+  }
+
+  // JSONP 요청
+  if (SHEET_URL && SHEET_URL.includes('script.google.com')) {
+    const script = document.createElement('script');
+    script.src = SHEET_URL + '?action=search&name=' + encodeURIComponent(name) + 
+                 '&phone=' + encodeURIComponent(phone) + '&callback=handleSearchResult';
+    script.onerror = function() {
+      document.getElementById('loadingSection').style.display = 'none';
+      renderNoResult();
+    };
+    document.body.appendChild(script);
+    
+    // 타임아웃
+    setTimeout(() => {
+      document.getElementById('loadingSection').style.display = 'none';
+      if (!document.getElementById('resultSection').classList.contains('active')) {
+        renderNoResult();
+      }
+    }, 10000);
+  } else {
+    document.getElementById('loadingSection').style.display = 'none';
+    renderNoResult();
+  }
+}
+
+function renderNoResult() {
+  const section = document.getElementById('resultSection');
+  section.innerHTML = `
+    <div class="card">
+      <div class="no-result">
+        <div class="icon">😢</div>
+        <h3>주문 내역 없음</h3>
+        <p>이름과 전화번호를 확인해주세요.</p>
+      </div>
+    </div>
+  `;
+  section.classList.add('active');
+}
+
+function renderOrders(orders) {
+  const section = document.getElementById('resultSection');
+  section.innerHTML = orders.map(createOrderCard).join('');
+  section.classList.add('active');
+}
+
+function createOrderCard(order) {
+  const status = order.status || '주문접수';
+  const statusInfo = STATUS_MAP[status] || STATUS_MAP['주문접수'];
+  const currentStep = statusInfo.step;
+
+  const stepsHTML = STATUS_LABELS.map((label, idx) => {
+    let cls = '';
+    if (idx < currentStep) cls = 'completed';
+    else if (idx === currentStep) cls = 'active';
+    const icon = STATUS_MAP[label]?.icon || '⭕';
+    return `<div class="status-step ${cls}"><div class="step-icon">${icon}</div><div class="step-label">${label}</div></div>`;
+  }).join('');
+
+  const trackingHTML = order.trackingNumber ? `
+    <div class="tracking-info">
+      <h5>운송장 번호</h5>
+      <div class="tracking-number">
+        ${order.trackingNumber}
+        <a href="https://trace.cjlogistics.com/web/detail.jsp?slipno=${order.trackingNumber}" target="_blank">배송조회</a>
+      </div>
+    </div>
+  ` : '';
+
+  return `
+    <div class="card order-card">
+      <div class="order-header">
+        <span class="order-number">${order.orderNumber || 'ORN-'}</span>
+        <span class="order-date">${formatDate(order.timestamp)}</span>
+      </div>
+      <div class="order-body">
+        <div class="order-info-row">
+          <span class="label">상태</span>
+          <span class="value" style="color:var(--accent);">${status}</span>
+        </div>
+        <div class="order-info-row">
+          <span class="label">금액</span>
+          <span class="value">${order.amount || '-'} USDT</span>
+        </div>
+        <div class="order-info-row">
+          <span class="label">배송지</span>
+          <span class="value">${order.address || '-'}</span>
+        </div>
+        <div class="status-tracker">
+          <h4>📍 배송 진행</h4>
+          <div class="status-steps">${stepsHTML}</div>
+        </div>
+        ${trackingHTML}
+      </div>
+    </div>
+  `;
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '-';
+  try {
+    const d = new Date(dateStr);
+    return d.getFullYear() + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getDate()).padStart(2,'0');
+  } catch { return dateStr; }
+}
+
+// 자동 입력
+document.addEventListener('DOMContentLoaded', function() {
+  const lastOrder = localStorage.getItem('lastOrder');
+  if (lastOrder) {
+    try {
+      const order = JSON.parse(lastOrder);
+      document.getElementById('searchName').value = order.ordererName || '';
+      document.getElementById('searchPhone').value = order.ordererPhone || '';
+    } catch {}
+  }
+});
+</script>
+</body>
+</html>
