@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSA 미네랄 주문확인서</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<!-- 다음 우편번호 API 미리 로드 -->
+<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --mint: #e8f5e9;
+  --mint-dark: #a5d6a7;
+  --sky: #e3f2fd;
+  --sky-dark: #90caf9;
+  --peach: #fff3e0;
+  --lavender: #f3e5f5;
+  --cream: #fffde7;
+  --white: #ffffff;
+  --text-primary: #2e3a3f;
+  --text-secondary: #607d8b;
+  --accent: #43a047;
+  --accent-hover: #2e7d32;
+  --border: #c8e6c9;
+  --error: #e53935;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.12);
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: linear-gradient(160deg, var(--mint) 0%, var(--sky) 40%, var(--lavender) 70%, var(--cream) 100%);
+  min-height: 100vh;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.page-wrapper {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 40px 20px 60px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 40px;
+  animation: fadeDown 0.6s ease-out;
+}
+
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.header h1 {
+  font-family: 'Outfit', 'Noto Sans KR', sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.5px;
+}
+
+.header p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin-top: 6px;
+}
+
+.header-links {
+  margin-top: 12px;
+}
+
+.header-links a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 6px 16px;
+  border: 1.5px solid var(--accent);
+  border-radius: 20px;
+  transition: all 0.2s;
+}
+
+.header-links a:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.product-section {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 32px;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 32px;
+  animation: fadeUp 0.7s ease-out 0.1s both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.product-image { flex: 0 0 220px; position: relative; }
+.product-image img {
+  width: 220px;
+  height: auto;
+  border-radius: var(--radius-sm);
+  filter: drop-shadow(0 8px 24px rgba(67,160,71,0.15));
+}
+
+.product-info { flex: 1; }
+.product-info .badge {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--accent), #66bb6a);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 14px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+
+.product-info h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 12px; }
+.product-info .desc { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.7; }
+.product-info .desc strong { color: var(--accent); }
+.product-info .highlights { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.product-info .highlights span {
+  background: var(--mint);
+  color: var(--accent-hover);
+  font-size: 0.78rem;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.form-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 32px;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 24px;
+  animation: fadeUp 0.7s ease-out 0.2s both;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--mint);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-title .icon {
+  width: 28px;
+  height: 28px;
+  background: var(--accent);
+  color: white;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.form-row.full { grid-template-columns: 1fr; }
+
+.form-group { display: flex; flex-direction: column; }
+.form-group label { font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; }
+.form-group label .req { color: var(--error); margin-left: 2px; }
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 0.9rem;
+  padding: 12px 14px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: var(--radius-sm);
+  background: #fafafa;
+  color: var(--text-primary);
+  transition: all 0.2s;
+  outline: none;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: var(--accent);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(67,160,71,0.12);
+}
+
+.form-group textarea { resize: vertical; min-height: 70px; }
+.form-group input::placeholder, .form-group textarea::placeholder { color: #bbb; }
+.form-group.error input, .form-group.error textarea { border-color: var(--error); background: #fff5f5; }
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: var(--mint);
+  border-radius: var(--radius-sm);
+}
+
+.checkbox-row input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.checkbox-row label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.address-row { display: flex; gap: 10px; align-items: flex-end; }
+.address-row input { flex: 1; }
+
+.btn-search-addr {
+  flex-shrink: 0;
+  padding: 12px 18px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-search-addr:hover { background: var(--accent-hover); }
+
+/* Wallet QR Section */
+.wallet-section {
+  background: linear-gradient(135deg, #fff8e1, #fff3e0);
+  border: 2px dashed #ffb74d;
+  border-radius: var(--radius-sm);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.wallet-section h4 {
+  font-size: 0.95rem;
+  color: #e65100;
+  margin-bottom: 16px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.wallet-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.qr-box {
+  text-align: center;
+}
+
+.qr-code {
+  background: white;
+  padding: 12px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  display: inline-block;
+}
+
+.qr-hint {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 8px;
+}
+
+.wallet-address-box {
+  flex: 1;
+  min-width: 250px;
+}
+
+.wallet-address-box p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.wallet-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.wallet-input-row input {
+  flex: 1;
+  font-family: 'Outfit', monospace;
+  font-size: 0.85rem;
+  padding: 12px 14px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  background: white;
+  color: var(--text-primary);
+}
+
+.wallet-input-row input:focus {
+  border-color: #ff9800;
+  box-shadow: 0 0 0 3px rgba(255,152,0,0.15);
+  outline: none;
+}
+
+.btn-copy-icon {
+  width: 44px;
+  height: 44px;
+  background: #ff9800;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-copy-icon:hover { background: #f57c00; }
+
+.wallet-note {
+  font-size: 0.8rem;
+  color: #bf360c;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: rgba(255,87,34,0.1);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.submit-section { text-align: center; animation: fadeUp 0.7s ease-out 0.4s both; }
+
+.btn-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 56px;
+  background: linear-gradient(135deg, var(--accent), #66bb6a);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(67,160,71,0.3);
+  transition: all 0.3s;
+}
+
+.btn-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(67,160,71,0.4); }
+.btn-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+.spinner {
+  display: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Modal */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.modal-overlay.active { display: flex; }
+
+.modal {
+  background: white;
+  border-radius: var(--radius);
+  padding: 36px;
+  max-width: 520px;
+  width: 100%;
+  box-shadow: var(--shadow-lg);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal h3 { font-size: 1.2rem; margin-bottom: 20px; text-align: center; color: var(--accent); }
+
+.confirm-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+.confirm-table tr { border-bottom: 1px solid #f0f0f0; }
+.confirm-table th {
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  width: 110px;
+  background: #fafafa;
+}
+.confirm-table td { padding: 10px 12px; font-size: 0.9rem; word-break: break-all; }
+
+.modal-buttons { display: flex; gap: 12px; justify-content: center; }
+.modal-buttons button {
+  padding: 12px 32px;
+  border-radius: 50px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.btn-cancel { background: #f5f5f5; color: var(--text-secondary); }
+.btn-cancel:hover { background: #e0e0e0; }
+.btn-confirm { background: var(--accent); color: white; }
+.btn-confirm:hover { background: var(--accent-hover); }
+
+/* Success */
+.success-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(255,255,255,0.95);
+  z-index: 2000;
+  justify-content: center;
+  align-items: center;
+}
+
+.success-overlay.active { display: flex; }
+
+.success-box { text-align: center; }
+.success-icon { font-size: 4rem; margin-bottom: 20px; }
+.success-box h3 { font-size: 1.5rem; color: var(--accent); margin-bottom: 12px; }
+.success-box p { color: var(--text-secondary); line-height: 1.8; }
+.success-box .order-number {
+  display: inline-block;
+  background: var(--mint);
+  color: var(--accent-hover);
+  font-weight: 700;
+  padding: 8px 20px;
+  border-radius: 8px;
+  margin-top: 16px;
+  font-size: 1.1rem;
+}
+
+.success-box .btn-check-order {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 12px 28px;
+  background: var(--accent);
+  color: white;
+  text-decoration: none;
+  border-radius: 50px;
+  font-weight: 600;
+}
+
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 14px 28px;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  z-index: 3000;
+  display: none;
+}
+
+.copy-success {
+  background: var(--accent) !important;
+}
+
+@media (max-width: 768px) {
+  .product-section { flex-direction: column; text-align: center; }
+  .product-image { flex: none; }
+  .product-info .highlights { justify-content: center; }
+  .form-row { grid-template-columns: 1fr; }
+  .wallet-content { flex-direction: column; }
+  .wallet-address-box { width: 100%; min-width: auto; }
+  .qr-box { margin-bottom: 10px; }
+}
+</style>
+</head>
+<body>
+<div class="page-wrapper">
+  <div class="header">
+    <h1>MSA 미네랄 주문확인서</h1>
+    <p>건강한 삶을 위한 유기이온미네랄</p>
+    <div class="header-links">
+      <a href="order-status.html">📦 주문 조회하기</a>
+    </div>
+  </div>
+
+  <div class="product-section">
+    <div class="product-image">
+      <img src="https://via.placeholder.com/220x280/e8f5e9/43a047?text=MSA+Mineral" alt="MSA 미네랄" />
+    </div>
+    <div class="product-info">
+      <span class="badge">유기이온미네랄</span>
+      <h2>MSA 미네랄</h2>
+      <p class="desc">
+        생명체인 동·식물성(곤충 포함)에서 미네랄을 <strong>고농축으로 종합 추출</strong>하여 이온화시킨 다량미량의 종합미네랄입니다.
+        인체는 미네랄을 스스로 합성할 수 없으며, <strong>반드시 외부에서 섭취</strong>해야 하는 필수 영양소입니다.
+      </p>
+      <div class="highlights">
+        <span>종합 유기질 이온</span>
+        <span>고농축 추출</span>
+        <span>필수 영양소</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 입금 확인 정보 -->
+  <div class="form-card">
+    <div class="section-title">
+      <span class="icon">💰</span>
+      입금 확인 정보
+    </div>
+    
+    <!-- USDT 지갑 주소 -->
+    <div class="wallet-section">
+      <h4>📱 USDT(TRC20) 입금 지갑 주소</h4>
+      <div class="wallet-content">
+        <div class="qr-box">
+          <div class="qr-code">
+            <canvas id="walletQR"></canvas>
+          </div>
+          <p class="qr-hint">모바일 지갑 앱으로 스캔</p>
+        </div>
+        <div class="wallet-address-box">
+          <p>👇 아래 주소를 복사하여 송금해주세요</p>
+          <div class="wallet-input-row">
+            <input type="text" id="walletAddr" readonly />
+            <button type="button" class="btn-copy-icon" onclick="copyWalletAddress()" title="주소 복사">📋</button>
+          </div>
+          <div class="wallet-note">
+            ⚠️ 반드시 <strong>TRC20 네트워크</strong>로 전송하세요!
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="form-row">
+      <div class="form-group">
+        <label>송금일시 <span class="req">*</span></label>
+        <input type="date" id="payDate" required />
+      </div>
+      <div class="form-group">
+        <label>송금 금액 (USDT) <span class="req">*</span></label>
+        <input type="text" id="payAmount" placeholder="예: 150" />
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="form-group">
+        <label>입금내역 (TxID 또는 스크린샷 텍스트) <span class="req">*</span></label>
+        <textarea id="payProof" placeholder="테더(USDT) 송금 확인 내역을 복사하여 붙여넣기 해주세요.&#10;(Transaction ID, 보낸 주소, 받은 주소 등)"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- 주문자 정보 -->
+  <div class="form-card">
+    <div class="section-title">
+      <span class="icon">👤</span>
+      주문자 정보
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>주문자 이름 <span class="req">*</span></label>
+        <input type="text" id="ordererName" placeholder="홍길동" />
+      </div>
+      <div class="form-group">
+        <label>주문자 전화번호 <span class="req">*</span></label>
+        <input type="tel" id="ordererPhone" placeholder="010-1234-5678" />
+      </div>
+    </div>
+  </div>
+
+  <!-- 수령인 / 배송 정보 -->
+  <div class="form-card">
+    <div class="section-title">
+      <span class="icon">📦</span>
+      수령인 / 배송 정보
+    </div>
+    
+    <div class="checkbox-row">
+      <input type="checkbox" id="sameAsOrderer" onchange="toggleSameAsOrderer()" />
+      <label for="sameAsOrderer">주문자와 동일</label>
+    </div>
+    
+    <div id="receiverFields">
+      <div class="form-row">
+        <div class="form-group">
+          <label>수령인 이름 <span class="req">*</span></label>
+          <input type="text" id="receiverName" placeholder="홍길동" />
+        </div>
+        <div class="form-group">
+          <label>수령인 전화번호 <span class="req">*</span></label>
+          <input type="tel" id="receiverPhone" placeholder="010-1234-5678" />
+        </div>
+      </div>
+    </div>
+
+    <div class="form-row full">
+      <div class="form-group">
+        <label>배송 주소 <span class="req">*</span></label>
+        <div class="address-row">
+          <input type="text" id="postcode" placeholder="우편번호" style="flex:0 0 120px;" readonly />
+          <button type="button" class="btn-search-addr" onclick="searchAddress()">주소찾기</button>
+        </div>
+        <input type="text" id="addrMain" placeholder="주소찾기 버튼을 눌러주세요" style="margin-top:10px;width:100%;" readonly />
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="form-group">
+        <label>상세주소</label>
+        <input type="text" id="addrDetail" placeholder="동, 호수 등 상세주소 입력" />
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="form-group">
+        <label>배송 시 요청사항</label>
+        <textarea id="deliveryNote" placeholder="부재 시 문 앞에 놓아주세요 등"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="submit-section">
+    <button class="btn-submit" id="btnSubmit" onclick="handleSubmit()">
+      <span>주문서 제출</span>
+      <div class="spinner" id="spinner"></div>
+    </button>
+  </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal">
+    <h3>📋 주문 정보를 확인해주세요</h3>
+    <table class="confirm-table" id="confirmTable"></table>
+    <div class="modal-buttons">
+      <button class="btn-cancel" onclick="closeModal()">취소</button>
+      <button class="btn-confirm" onclick="confirmOrder()">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- Success Overlay -->
+<div class="success-overlay" id="successOverlay">
+  <div class="success-box">
+    <div class="success-icon">✅</div>
+    <h3>주문이 완료되었습니다!</h3>
+    <p>관리자 확인 후 발송 처리됩니다.<br/>감사합니다.</p>
+    <div class="order-number" id="orderNumberDisplay"></div>
+    <a href="order-status.html" class="btn-check-order">주문 조회하기</a>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- QR Code Library -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+
+<script>
+/************************************************************
+ * ⚠️ 설정: 아래 두 값을 반드시 변경하세요!
+ ************************************************************/
+const SHEET_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL';
+const WALLET_ADDRESS = 'TRC20_USDT_지갑주소를_여기에_입력';
+
+/************************************************************
+ * 초기화
+ ************************************************************/
+document.addEventListener('DOMContentLoaded', function() {
+  // 지갑 주소 설정
+  document.getElementById('walletAddr').value = WALLET_ADDRESS;
+  
+  // QR 코드 생성
+  if (WALLET_ADDRESS && !WALLET_ADDRESS.includes('여기에')) {
+    QRCode.toCanvas(document.getElementById('walletQR'), WALLET_ADDRESS, {
+      width: 140,
+      margin: 2,
+      color: { dark: '#2e3a3f', light: '#ffffff' }
+    });
+  }
+});
+
+/************************************************************
+ * 지갑 주소 복사
+ ************************************************************/
+function copyWalletAddress() {
+  const addr = document.getElementById('walletAddr');
+  
+  // 클립보드 복사
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(addr.value).then(function() {
+      showCopySuccess();
+    }).catch(function() {
+      fallbackCopy(addr);
+    });
+  } else {
+    fallbackCopy(addr);
+  }
+}
+
+function fallbackCopy(input) {
+  input.select();
+  input.setSelectionRange(0, 99999);
+  document.execCommand('copy');
+  showCopySuccess();
+}
+
+function showCopySuccess() {
+  const toast = document.getElementById('toast');
+  toast.textContent = '✅ 지갑 주소가 복사되었습니다!';
+  toast.classList.add('copy-success');
+  toast.style.display = 'block';
+  setTimeout(() => { 
+    toast.style.display = 'none'; 
+    toast.classList.remove('copy-success');
+  }, 2000);
+}
+
+/************************************************************
+ * 주문자와 동일 체크박스
+ ************************************************************/
+function toggleSameAsOrderer() {
+  const checked = document.getElementById('sameAsOrderer').checked;
+  const receiverName = document.getElementById('receiverName');
+  const receiverPhone = document.getElementById('receiverPhone');
+  
+  if (checked) {
+    receiverName.value = document.getElementById('ordererName').value;
+    receiverPhone.value = document.getElementById('ordererPhone').value;
+    receiverName.readOnly = true;
+    receiverPhone.readOnly = true;
+    receiverName.style.background = '#f0f0f0';
+    receiverPhone.style.background = '#f0f0f0';
+  } else {
+    receiverName.readOnly = false;
+    receiverPhone.readOnly = false;
+    receiverName.style.background = '#fafafa';
+    receiverPhone.style.background = '#fafafa';
+  }
+}
+
+document.getElementById('ordererName')?.addEventListener('input', function() {
+  if (document.getElementById('sameAsOrderer').checked) {
+    document.getElementById('receiverName').value = this.value;
+  }
+});
+
+document.getElementById('ordererPhone')?.addEventListener('input', function() {
+  if (document.getElementById('sameAsOrderer').checked) {
+    document.getElementById('receiverPhone').value = this.value;
+  }
+});
+
+/************************************************************
+ * 주소 검색 (다음 우편번호 API)
+ ************************************************************/
+function searchAddress() {
+  new daum.Postcode({
+    oncomplete: function(data) {
+      document.getElementById('postcode').value = data.zonecode;
+      document.getElementById('addrMain').value = data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress;
+      document.getElementById('addrDetail').focus();
+    }
+  }).open();
+}
+
+/************************************************************
+ * 유틸리티
+ ************************************************************/
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 3000);
+}
+
+/************************************************************
+ * 유효성 검사
+ ************************************************************/
+function validate() {
+  const fields = [
+    { id: 'payDate', name: '송금일시' },
+    { id: 'payAmount', name: '송금 금액' },
+    { id: 'payProof', name: '입금내역' },
+    { id: 'ordererName', name: '주문자 이름' },
+    { id: 'ordererPhone', name: '주문자 전화번호' },
+    { id: 'receiverName', name: '수령인 이름' },
+    { id: 'receiverPhone', name: '수령인 전화번호' },
+    { id: 'addrMain', name: '배송 주소' },
+  ];
+
+  document.querySelectorAll('.form-group.error').forEach(g => g.classList.remove('error'));
+
+  for (const f of fields) {
+    const el = document.getElementById(f.id);
+    if (!el.value.trim()) {
+      el.closest('.form-group')?.classList.add('error');
+      showToast(`${f.name}을(를) 입력해주세요.`);
+      el.focus();
+      return false;
+    }
+  }
+  return true;
+}
+
+/************************************************************
+ * 폼 데이터 수집
+ ************************************************************/
+function getFormData() {
+  const dateVal = document.getElementById('payDate').value || '';
+  const isSame = document.getElementById('sameAsOrderer').checked;
+  
+  // 날짜 형식 변환 (YYYY-MM-DD → YYYY/MM/DD)
+  let formattedDate = dateVal;
+  if (dateVal && dateVal.includes('-')) {
+    formattedDate = dateVal.replace(/-/g, '/');
+  }
+
+  return {
+    '송금일시': formattedDate,
+    '송금금액': document.getElementById('payAmount').value.trim(),
+    '입금내역': document.getElementById('payProof').value.trim(),
+    '주문자이름': document.getElementById('ordererName').value.trim(),
+    '주문자전화': document.getElementById('ordererPhone').value.trim(),
+    '수령인이름': document.getElementById('receiverName').value.trim(),
+    '수령인전화': document.getElementById('receiverPhone').value.trim(),
+    '주문자동일': isSame ? 'Y' : 'N',
+    '우편번호': document.getElementById('postcode').value.trim(),
+    '주소': document.getElementById('addrMain').value.trim(),
+    '상세주소': document.getElementById('addrDetail').value.trim(),
+    '배송요청': document.getElementById('deliveryNote').value.trim(),
+  };
+}
+
+/************************************************************
+ * 제출 처리
+ ************************************************************/
+function handleSubmit() {
+  if (!validate()) return;
+
+  const data = getFormData();
+  const table = document.getElementById('confirmTable');
+  table.innerHTML = '';
+
+  const labels = [
+    ['송금일시', '송금일시'],
+    ['송금금액', '송금 금액 (USDT)'],
+    ['입금내역', '입금내역'],
+    ['주문자이름', '주문자'],
+    ['주문자전화', '주문자 연락처'],
+    ['수령인이름', '수령인'],
+    ['수령인전화', '수령인 연락처'],
+    ['주소', '배송 주소'],
+    ['상세주소', '상세주소'],
+    ['배송요청', '배송 요청사항'],
+  ];
+
+  for (const [key, label] of labels) {
+    if (data[key]) {
+      const tr = document.createElement('tr');
+      let val = data[key];
+      if ((key === '수령인이름' || key === '수령인전화') && data['주문자동일'] === 'Y') {
+        val += ' <span style="color:#43a047;font-size:0.75rem;">(주문자와 동일)</span>';
+      }
+      tr.innerHTML = `<th>${label}</th><td>${val}</td>`;
+      table.appendChild(tr);
+    }
+  }
+
+  document.getElementById('confirmModal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('confirmModal').classList.remove('active');
+}
+
+async function confirmOrder() {
+  closeModal();
+  const btn = document.getElementById('btnSubmit');
+  const spinner = document.getElementById('spinner');
+  btn.disabled = true;
+  spinner.style.display = 'block';
+
+  const data = getFormData();
+
+  try {
+    // Google Apps Script로 전송
+    await fetch(SHEET_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(data),
+    });
+
+    const orderNum = 'MSA' + Date.now().toString().slice(-8);
+    document.getElementById('orderNumberDisplay').textContent = '주문번호: ' + orderNum;
+    
+    localStorage.setItem('lastOrder', JSON.stringify({
+      orderNumber: orderNum,
+      ordererName: data['주문자이름'],
+      ordererPhone: data['주문자전화'],
+      timestamp: new Date().toISOString()
+    }));
+
+    document.getElementById('successOverlay').classList.add('active');
+  } catch (err) {
+    console.error('전송 오류:', err);
+    showToast('전송 중 오류가 발생했습니다. 다시 시도해주세요.');
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+  }
+}
+</script>
+</body>
+</html>
