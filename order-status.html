@@ -82,14 +82,17 @@ body{font-family:'Noto Sans KR',sans-serif;background:linear-gradient(160deg,#e8
 .delivery-status{display:flex;align-items:center;justify-content:center;gap:10px;padding:16px;border-radius:12px;margin:16px 0;font-size:1rem;font-weight:700}
 .delivery-status .status-icon{font-size:1.5rem}
 .delivery-status.pending{background:#fff3e0;color:#e65100}
+.delivery-status.shipping{background:#e3f2fd;color:#1565c0}
 .delivery-status.direct{background:#e8f5e9;color:#2e7d32}
-.delivery-status.complete{background:#e3f2fd;color:#1565c0}
+.delivery-status.complete{background:#f3e5f5;color:#7b1fa2}
 
 .loading{text-align:center;padding:40px}
 .loading-spinner{width:40px;height:40px;border:4px solid #e0e0e0;border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:12px 24px;border-radius:50px;font-size:.85rem;z-index:3000;display:none}
+.toast.show{display:block}
+.toast.ok{background:#43a047}
 </style>
 </head>
 <body>
@@ -253,14 +256,14 @@ function createCard(order) {
   var trackingHTML = '';
   
   if (!tn) {
-    // 송장번호 없음 → 배송중
-    deliveryStatus = '<div class="delivery-status pending"><span class="status-icon">🚚</span><span>배송중</span></div>';
+    // 송장번호 없음 → 배송준비중
+    deliveryStatus = '<div class="delivery-status pending"><span class="status-icon">📦</span><span>배송준비중</span></div>';
   } else if (tn === '직접전달') {
     // 직접전달
     deliveryStatus = '<div class="delivery-status direct"><span class="status-icon">🤝</span><span>직접전달</span></div>';
   } else {
-    // 송장번호 있음 → 배송완료
-    deliveryStatus = '<div class="delivery-status complete"><span class="status-icon">✅</span><span>배송완료</span></div>';
+    // 송장번호 있음 → 배송중 + 송장번호 복사 가능
+    deliveryStatus = '<div class="delivery-status shipping"><span class="status-icon">🚚</span><span>배송중</span></div>';
     trackingHTML = '<div class="tracking">' +
       '<h5>🚚 운송장 번호</h5>' +
       '<div class="tracking-num-box">' +
