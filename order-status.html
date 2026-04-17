@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>주문 조회 - 오륜 미네랄</title>
+<meta property="og:title" content="미네랄 주문하기">
+<meta property="og:description" content="신체의 완벽한 조화를 만드는">
+<meta property="og:image" content="product-image.png">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:linear-gradient(160deg,#e8f8e0,#e3f2fd 50%,#f3e5f5);min-height:100vh;color:#2e3a3f}
+.wrap{max-width:600px;margin:0 auto;padding:20px 16px 40px}
+.header{text-align:center;margin-bottom:24px}
+.header-img{width:100px;height:100px;object-fit:cover;border-radius:50%;margin-bottom:12px;box-shadow:0 4px 15px rgba(0,0,0,0.1)}
+.header h1{font-size:1.4rem;font-weight:700;color:#43a047}
+.header p{color:#607d8b;font-size:.85rem;margin-top:4px}
+.header-link{margin-top:12px}
+.header-link a{color:#43a047;text-decoration:none;font-size:.85rem;padding:8px 18px;border:2px solid #43a047;border-radius:25px;font-weight:500}
+.card{background:#fff;border-radius:16px;padding:20px;box-shadow:0 4px 20px rgba(0,0,0,.08);margin-bottom:16px}
+.card-title{font-size:1rem;font-weight:700;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #e8f5e9;display:flex;align-items:center;gap:8px}
+.form-row{display:flex;gap:10px;margin-bottom:12px}
+.form-group{flex:1;display:flex;flex-direction:column;min-width:0}
+.form-group.name{flex:0.8}
+.form-group.phone{flex:1.2}
+.form-group label{font-size:.75rem;font-weight:600;margin-bottom:6px}
+.form-group input{font-family:inherit;font-size:15px;padding:11px;border:1.5px solid #e0e0e0;border-radius:10px;background:#fafafa;outline:none;width:100%}
+.form-group input:focus{border-color:#43a047;background:#fff}
+.btn-search{width:100%;padding:14px;background:linear-gradient(135deg,#43a047,#66bb6a);color:#fff;border:none;border-radius:50px;font-size:1rem;font-weight:600;cursor:pointer;margin-top:8px}
+.result{display:none}
+.result.active{display:block}
+.no-result{text-align:center;padding:40px 20px;color:#607d8b}
+.no-result .icon{font-size:3rem;margin-bottom:12px}
+.order-card{border:1px solid #e0e0e0;border-radius:12px;overflow:hidden;margin-bottom:16px}
+.order-header{background:#e8f5e9;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.order-num{font-weight:700;color:#2e7d32;font-size:.9rem}
+.order-date{font-size:.8rem;color:#607d8b}
+.order-body{padding:16px}
+.order-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f5f5f5;font-size:.9rem}
+.order-row:last-child{border-bottom:none}
+.order-row .label{color:#607d8b}
+.order-row .value{font-weight:600;text-align:right}
+.delivery-status{display:flex;align-items:center;justify-content:center;gap:10px;padding:16px;border-radius:12px;margin:16px 0;font-size:1rem;font-weight:700}
+.delivery-status .status-icon{font-size:1.5rem}
+.delivery-status.pending{background:#fff3e0;color:#e65100}
+.delivery-status.shipping{background:#e3f2fd;color:#1565c0}
+.delivery-status.direct{background:#e8f5e9;color:#2e7d32}
+.tracking{margin-top:16px;padding:16px;background:linear-gradient(135deg,#e3f2fd,#bbdefb);border-radius:12px}
+.tracking h5{font-size:.85rem;color:#1565c0;margin-bottom:10px}
+.courier-name{font-size:.9rem;color:#1565c0;font-weight:600;margin-bottom:8px;padding:8px 12px;background:#fff;border-radius:8px;display:inline-block}
+.tracking-num-box{display:flex;align-items:center;gap:10px;background:#fff;padding:12px;border-radius:8px;margin-bottom:12px}
+.tracking-num-text{font-family:monospace;font-size:1rem;font-weight:700;color:#0d47a1;flex:1;word-break:break-all}
+.btn-copy-track{padding:8px 16px;background:#1565c0;color:#fff;border:none;border-radius:20px;font-size:.8rem;font-weight:600;cursor:pointer}
+.btn-track-link{display:block;width:100%;padding:12px;background:#1565c0;color:#fff;border:none;border-radius:25px;font-size:.9rem;font-weight:600;text-decoration:none;text-align:center;margin-top:10px}
+.btn-track-link.cj{background:#d32f2f}
+.btn-track-link.lotte{background:#e65100}
+.btn-track-link.hanjin{background:#1565c0}
+.btn-track-link.post{background:#43a047}
+.btn-track-link.logen{background:#6d4c41}
+.loading{text-align:center;padding:40px}
+.loading-spinner{width:40px;height:40px;border:4px solid #e0e0e0;border-top-color:#43a047;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#43a047;color:#fff;padding:12px 24px;border-radius:50px;font-size:.85rem;z-index:3000;display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <img src="product-image.png" alt="오륜 미네랄" class="header-img">
+    <h1>📦 주문 조회</h1>
+    <p>주문 상태 및 배송 추적</p>
+    <div class="header-link"><a href="index.html">🛒 주문하기</a></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔍 주문 조회</div>
+    <div class="form-row">
+      <div class="form-group name"><label>이름</label><input type="text" id="searchName" placeholder="홍길동"></div>
+      <div class="form-group phone"><label>전화번호</label><input type="tel" id="searchPhone" placeholder="010-0000-0000" maxlength="13" oninput="formatPhone(this)"></div>
+    </div>
+    <button class="btn-search" onclick="searchOrder()">주문 조회하기</button>
+  </div>
+
+  <div class="card loading" id="loading" style="display:none">
+    <div class="loading-spinner"></div>
+    <p>조회 중...</p>
+  </div>
+
+  <div class="result" id="result"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var SHEET_URL = 'https://script.google.com/macros/s/AKfycbz02I8uwK30NarGzM7C3iYUgp7DzXBmtboxKg9oNLU8ze5AcYoxcXTjKPwPzg19a8h8/exec';
+
+// 택배사별 조회 URL
+var COURIER_URLS = {
+  'CJ대한통운': 'https://trace.cjlogistics.com/web/detail.jsp?slipno=',
+  '롯데택배': 'https://www.lotteglogis.com/home/reservation/tracking/link?InvNo=',
+  '한진택배': 'https://www.hanjin.com/kor/CMS/DeliveryMgr/WaybillResult.do?wblnumString2=',
+  '우체국': 'https://service.epost.go.kr/trace.RetrieveDomRi498Trace.do?sid1=',
+  '로젠택배': 'https://www.ilogen.com/web/personal/trace/',
+  'CJ': 'https://trace.cjlogistics.com/web/detail.jsp?slipno=',
+  '롯데': 'https://www.lotteglogis.com/home/reservation/tracking/link?InvNo=',
+  '한진': 'https://www.hanjin.com/kor/CMS/DeliveryMgr/WaybillResult.do?wblnumString2=',
+  '로젠': 'https://www.ilogen.com/web/personal/trace/'
+};
+
+var COURIER_CLASSES = {
+  'CJ대한통운': 'cj', 'CJ': 'cj',
+  '롯데택배': 'lotte', '롯데': 'lotte',
+  '한진택배': 'hanjin', '한진': 'hanjin',
+  '우체국': 'post',
+  '로젠택배': 'logen', '로젠': 'logen'
+};
+
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(function() { t.style.display = 'none'; }, 3000);
+}
+
+function copyTracking(num) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(num).then(function() { toast('✅ 송장번호 복사됨!'); });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = num;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('✅ 송장번호 복사됨!');
+  }
+}
+
+function formatPhone(input) {
+  var num = input.value.replace(/[^0-9]/g, '');
+  if (num.length <= 3) input.value = num;
+  else if (num.length <= 7) input.value = num.slice(0,3) + '-' + num.slice(3);
+  else input.value = num.slice(0,3) + '-' + num.slice(3,7) + '-' + num.slice(7,11);
+}
+
+function handleSearchResult(result) {
+  document.getElementById('loading').style.display = 'none';
+  console.log('검색 결과:', result);
+  
+  if (result && result.success && result.orders && result.orders.length > 0) {
+    renderOrders(result.orders);
+  } else {
+    renderNoResult();
+  }
+}
+
+function searchOrder() {
+  var name = document.getElementById('searchName').value.trim();
+  var phone = document.getElementById('searchPhone').value.trim();
+  
+  if (!name || !phone) {
+    toast('이름과 전화번호를 입력하세요');
+    return;
+  }
+
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('result').classList.remove('active');
+  document.getElementById('result').innerHTML = '';
+
+  var script = document.createElement('script');
+  script.src = SHEET_URL + '?action=search&name=' + encodeURIComponent(name) + '&phone=' + encodeURIComponent(phone) + '&callback=handleSearchResult';
+  script.onerror = function() {
+    document.getElementById('loading').style.display = 'none';
+    toast('조회 실패. 다시 시도해주세요.');
+  };
+  document.body.appendChild(script);
+
+  setTimeout(function() {
+    if (document.getElementById('loading').style.display !== 'none') {
+      document.getElementById('loading').style.display = 'none';
+    }
+  }, 10000);
+}
+
+function renderNoResult() {
+  var r = document.getElementById('result');
+  r.innerHTML = '<div class="card"><div class="no-result"><div class="icon">😢</div><h3>주문 내역 없음</h3><p>이름과 전화번호를 확인해주세요.</p></div></div>';
+  r.classList.add('active');
+}
+
+function renderOrders(orders) {
+  var r = document.getElementById('result');
+  var html = '';
+  for (var i = 0; i < orders.length; i++) {
+    html += createCard(orders[i]);
+  }
+  r.innerHTML = html;
+  r.classList.add('active');
+}
+
+function createCard(order) {
+  var tn = String(order.trackingNumber || '').trim();
+  var courier = String(order.courier || '').trim();
+  
+  var deliveryHTML = '';
+  var trackingHTML = '';
+  
+  if (courier === '직접전달' || tn === '직접전달') {
+    // 직접전달
+    deliveryHTML = '<div class="delivery-status direct"><span class="status-icon">🤝</span><span>직접전달</span></div>';
+  } else if (!tn || tn === '0' || tn === 'undefined') {
+    // 송장번호 없음 = 배송준비중
+    deliveryHTML = '<div class="delivery-status pending"><span class="status-icon">📦</span><span>배송준비중</span></div>';
+  } else {
+    // 송장번호 있음 = 배송중
+    deliveryHTML = '<div class="delivery-status shipping"><span class="status-icon">🚚</span><span>배송중</span></div>';
+    
+    var trackURL = COURIER_URLS[courier] || '';
+    var trackClass = COURIER_CLASSES[courier] || '';
+    
+    trackingHTML = '<div class="tracking">' +
+      '<h5>🚚 배송 정보</h5>';
+    
+    if (courier) {
+      trackingHTML += '<div class="courier-name">📦 ' + courier + '</div>';
+    }
+    
+    trackingHTML += '<div class="tracking-num-box">' +
+        '<span class="tracking-num-text">' + tn + '</span>' +
+        '<button class="btn-copy-track" onclick="copyTracking(\'' + tn + '\')">복사</button>' +
+      '</div>';
+    
+    if (trackURL) {
+      trackingHTML += '<a href="' + trackURL + tn + '" target="_blank" class="btn-track-link ' + trackClass + '">📍 ' + courier + ' 배송조회</a>';
+    }
+    
+    trackingHTML += '</div>';
+  }
+
+  var amountText = order.amount ? order.amount + ' USDT' : '-';
+  var dateText = order.timestamp ? formatDate(order.timestamp) : '-';
+
+  return '<div class="card order-card">' +
+    '<div class="order-header">' +
+      '<span class="order-num">' + (order.orderNumber || '-') + '</span>' +
+      '<span class="order-date">' + dateText + '</span>' +
+    '</div>' +
+    '<div class="order-body">' +
+      '<div class="order-row"><span class="label">주문 상태</span><span class="value" style="color:#43a047">' + (order.status || '주문접수') + '</span></div>' +
+      '<div class="order-row"><span class="label">송금 금액</span><span class="value">' + amountText + '</span></div>' +
+      '<div class="order-row"><span class="label">배송지</span><span class="value">' + (order.address || '-') + '</span></div>' +
+      deliveryHTML +
+      trackingHTML +
+    '</div>' +
+  '</div>';
+}
+
+function formatDate(d) {
+  if (!d) return '-';
+  try {
+    var date = new Date(d);
+    return date.getFullYear() + '.' + String(date.getMonth()+1).padStart(2,'0') + '.' + String(date.getDate()).padStart(2,'0');
+  } catch(e) {
+    return String(d);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  try {
+    var lastOrder = localStorage.getItem('lastOrder');
+    if (lastOrder) {
+      var order = JSON.parse(lastOrder);
+      if (order.ordererName) document.getElementById('searchName').value = order.ordererName;
+      if (order.ordererPhone) document.getElementById('searchPhone').value = order.ordererPhone;
+    }
+  } catch(e) {}
+});
+</script>
+</body>
+</html>
