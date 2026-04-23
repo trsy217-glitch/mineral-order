@@ -398,3 +398,10 @@ function testShipping() {
     Logger.log('첫 주문 → 우편번호: ' + o.postcode + ' | 주소: ' + o.address + ' | 구분: ' + o.payType + ' | 수량: ' + o.quantity);
   }
 }
+function testShipping() {
+  var result = getShippingData();
+  Logger.log('주문 수: ' + result.orders.length);
+  if (result.orders.length > 0) {
+    Logger.log('첫 주문: ' + JSON.stringify(result.orders[0]));
+  }
+}
