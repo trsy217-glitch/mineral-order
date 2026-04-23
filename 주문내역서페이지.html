@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<base target="_top">
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', -apple-system, sans-serif;
+    background: #f5f6f8;
+    color: #1a1a1a;
+    padding: 20px;
+  }
+  .container { max-width: 1500px; margin: 0 auto; }
+
+  header {
+    background: white;
+    border-radius: 12px;
+    padding: 20px 28px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  h1 { font-size: 20px; font-weight: 700; }
+  .subtitle { font-size: 12px; color: #888; margin-top: 3px; }
+
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  button {
+    padding: 9px 18px;
+    border: none;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: #305496; color: white; }
+  .btn-primary:hover { background: #244077; }
+  .btn-primary:disabled { background: #a0b4d0; cursor: not-allowed; }
+  .btn-secondary { background: #eee; color: #333; }
+  .btn-secondary:hover { background: #ddd; }
+  .btn-accent { background: #70ad47; color: white; }
+  .btn-accent:hover { background: #5a8a37; }
+  .btn-accent:disabled { background: #b5d0a5; cursor: not-allowed; }
+
+  /* 엑셀 스타일 시트 탭 */
+  .sheet-tabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 0;
+    padding: 0 4px;
+  }
+  .sheet-tab {
+    padding: 10px 22px;
+    background: #d9d9d9;
+    border: 1px solid #b0b0b0;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.1s;
+    position: relative;
+    top: 1px;
+  }
+  .sheet-tab:hover { background: #c8c8c8; }
+  .sheet-tab.active {
+    background: white;
+    color: #305496;
+    border-bottom: 1px solid white;
+    z-index: 2;
+    box-shadow: 0 -2px 4px rgba(0,0,0,0.05);
+  }
+  .sheet-tab .count-badge {
+    display: inline-block;
+    background: rgba(48,84,150,0.15);
+    color: #305496;
+    font-size: 10px;
+    padding: 1px 7px;
+    border-radius: 9px;
+    margin-left: 6px;
+    font-weight: 700;
+  }
+  .sheet-tab.active .count-badge {
+    background: #305496;
+    color: white;
+  }
+
+  .sheet-container {
+    background: white;
+    border-radius: 0 12px 12px 12px;
+    border: 1px solid #b0b0b0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
+  }
+
+  .sheet-content { display: none; }
+  .sheet-content.active { display: block; }
+
+  /* 제목·요약 (엑셀 최상단 스타일) */
+  .sheet-title {
+    text-align: center;
+    padding: 16px 20px 6px;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 4px;
+  }
+  .sheet-subtitle {
+    text-align: center;
+    padding: 0 20px 14px;
+    font-size: 12px;
+    color: #555;
+    font-style: italic;
+  }
+
+  /* 상태 바 (엑셀 요약 줄) */
+  .status-bar {
+    padding: 12px 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 16px;
+    border-bottom: 1px solid #eee;
+  }
+  .stat { border-left: 3px solid #305496; padding-left: 10px; }
+  .stat-label { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; }
+  .stat-value { font-size: 18px; font-weight: 700; margin-top: 2px; }
+  .stat.err { border-color: #c00000; } .stat.err .stat-value { color: #c00000; }
+  .stat.warn { border-color: #e8a003; }
+  .stat.ok { border-color: #70ad47; }
+
+  .filter-bar {
+    padding: 12px 18px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    background: #fafbfc;
+  }
+  .filter-chip {
+    padding: 5px 12px;
+    border-radius: 18px;
+    background: #f0f2f5;
+    font-size: 12px;
+    cursor: pointer;
+    user-select: none;
+    border: 1px solid transparent;
+  }
+  .filter-chip:hover { background: #e5e8ec; }
+  .filter-chip.active { background: #305496; color: white; border-color: #305496; }
+  .filter-chip .count {
+    background: rgba(0,0,0,0.08);
+    padding: 1px 7px;
+    border-radius: 9px;
+    font-size: 10px;
+    margin-left: 5px;
+    font-weight: 600;
+  }
+  .filter-chip.active .count { background: rgba(255,255,255,0.2); }
+  .search-box {
+    margin-left: auto;
+    padding: 5px 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 12px;
+    font-family: inherit;
+    width: 200px;
+  }
+
+  .selection-bar {
+    background: #eff4fa;
+    padding: 10px 18px;
+    display: none;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid #d4e1f0;
+    font-size: 13px;
+  }
+  .selection-bar.active { display: flex; }
+  .selection-bar strong { color: #305496; font-size: 14px; }
+  .selection-bar .quick-buttons { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+  .quick-btn {
+    padding: 4px 10px;
+    background: white;
+    border: 1px solid #b8c9dd;
+    border-radius: 5px;
+    font-size: 11px;
+    color: #305496;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .quick-btn:hover { background: #305496; color: white; }
+
+  .table-wrapper { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead { background: #305496; color: white; }
+  th {
+    padding: 11px 8px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 11px;
+    white-space: nowrap;
+    border: 1px solid #244077;
+  }
+  td {
+    padding: 9px 8px;
+    border: 1px solid #e5e7eb;
+    vertical-align: middle;
+  }
+  tr:hover td { background: #fafbfc; }
+  tr.group-row td { background-color: var(--group-color); }
+  tr.selected td { background-color: #fff8dd !important; }
+  tr.total-row td {
+    background: #d9e1f2 !important;
+    font-weight: 700;
+    text-align: center;
+    border-top: 2px solid #305496 !important;
+    border-bottom: 2px solid #305496 !important;
+  }
+
+  .col-check { width: 36px; text-align: center; }
+  .col-check input { cursor: pointer; width: 16px; height: 16px; }
+  .col-no { width: 36px; text-align: center; color: #999; }
+  .col-date { width: 54px; text-align: center; }
+  .col-name { width: 78px; font-weight: 600; }
+  .col-phone { width: 110px; text-align: center; font-family: monospace; font-size: 11px; color: #555; }
+  .col-zip { width: 62px; text-align: center; font-family: monospace; font-weight: 700; color: #305496; font-size: 12px; }
+  .col-addr { min-width: 250px; font-size: 11px; line-height: 1.4; }
+  .col-qty { width: 56px; text-align: center; font-weight: 700; font-size: 13px; }
+  .col-pay { width: 64px; text-align: center; }
+  .col-note { width: 180px; font-size: 10px; line-height: 1.35; }
+  .col-req { width: 150px; font-size: 10px; line-height: 1.35; color: #c00000; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .badge-cod { background: #fdecec; color: #c00000; }
+  .badge-prepaid { background: #e7f0fb; color: #2e75b6; }
+  .badge-error { background: #c00000; color: white; }
+  .note-alert {
+    display: inline-block;
+    background: #fff4c4;
+    padding: 3px 7px;
+    border-radius: 4px;
+    color: #7a5a00;
+    font-weight: 500;
+    border-left: 3px solid #e8a003;
+  }
+  .group-tag {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: #c00000;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .empty-state { text-align: center; padding: 70px 20px; color: #999; }
+  .empty-state .icon { font-size: 44px; margin-bottom: 10px; }
+
+  .loading { text-align: center; padding: 60px 20px; color: #666; }
+  .spinner {
+    display: inline-block;
+    width: 32px; height: 32px;
+    border: 3px solid #eee;
+    border-top-color: #305496;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-box {
+    background: #fdecec;
+    border: 1px solid #f5c2c2;
+    border-radius: 8px;
+    padding: 16px 20px;
+    color: #7a1717;
+    margin-bottom: 16px;
+  }
+
+  .info { font-size: 11px; color: #888; padding: 10px 20px; }
+
+  /* 배송비 규칙 시트 */
+  .rule-table {
+    max-width: 600px;
+    margin: 20px auto;
+  }
+  .rule-table td { text-align: center; padding: 10px; }
+  .rule-table tr:nth-child(even) td { background: #f2f2f2; }
+
+  /* 모달 */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    min-width: 340px;
+    max-width: 420px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  }
+  .modal h3 { font-size: 16px; margin-bottom: 16px; }
+  .modal .option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 7px;
+    margin-bottom: 8px;
+    cursor: pointer;
+  }
+  .modal .option:hover { background: #f5f8fc; border-color: #305496; }
+  .modal .option input { width: 16px; height: 16px; cursor: pointer; }
+  .modal .option-text { font-size: 13px; }
+  .modal .option-desc { font-size: 11px; color: #888; margin-top: 2px; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 18px; justify-content: flex-end; }
+
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: #1a1a1a;
+    color: white;
+    padding: 14px 22px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 1100;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div>
+      <h1>📦 주문 배송 관리</h1>
+      <div class="subtitle">신규주문 시트에서 읽기 전용으로 조회합니다</div>
+    </div>
+    <div class="actions">
+      <button class="btn-primary" onclick="loadOrders()" id="loadBtn">🔄 불러오기</button>
+      <button class="btn-accent" onclick="openDownloadModal()" id="downloadBtn" disabled>⬇ 다운로드</button>
+    </div>
+  </header>
+
+  <div id="errorBox"></div>
+
+  <!-- 엑셀 스타일 시트 탭 -->
+  <div id="tabsWrap" style="display:none">
+    <div class="sheet-tabs">
+      <div class="sheet-tab active" data-sheet="order" onclick="switchSheet('order')">
+        📋 주문 내역서 <span class="count-badge" id="tab-count-order">0</span>
+      </div>
+      <div class="sheet-tab" data-sheet="bundle" onclick="switchSheet('bundle')">
+        📦 묶음배송 안내 <span class="count-badge" id="tab-count-bundle">0</span>
+      </div>
+      <div class="sheet-tab" data-sheet="rule" onclick="switchSheet('rule')">
+        💰 배송비 규칙
+      </div>
+    </div>
+  </div>
+
+  <div class="sheet-container" id="sheetContainer" style="display:none">
+
+    <!-- 시트 1: 주문 내역서 -->
+    <div class="sheet-content active" id="sheet-order">
+      <div class="sheet-title">주 문 내 역 서</div>
+      <div class="sheet-subtitle" id="orderSummary"></div>
+      <div class="status-bar" id="statusBar"></div>
+
+      <div class="filter-bar">
+        <div class="filter-chip active" data-filter="all">전체 <span class="count" id="c-all">0</span></div>
+        <div class="filter-chip" data-filter="error">오류 <span class="count" id="c-error">0</span></div>
+        <div class="filter-chip" data-filter="group">묶음배송 <span class="count" id="c-group">0</span></div>
+        <div class="filter-chip" data-filter="cod">착불만 <span class="count" id="c-cod">0</span></div>
+        <div class="filter-chip" data-filter="prepaid">선불만 <span class="count" id="c-prepaid">0</span></div>
+        <input class="search-box" id="searchBox" placeholder="이름·주소·우편번호·연락처 검색..." oninput="renderOrders()">
+      </div>
+
+      <div class="selection-bar" id="selectionBar">
+        <strong id="selCount">0건 선택됨</strong>
+        <span style="color:#666; font-size:12px">선택 항목 다운로드 가능</span>
+        <div class="quick-buttons">
+          <button class="quick-btn" onclick="selectAll(true)">전체 선택</button>
+          <button class="quick-btn" onclick="selectByFilter('error')">오류만</button>
+          <button class="quick-btn" onclick="selectByFilter('group')">묶음배송만</button>
+          <button class="quick-btn" onclick="selectByFilter('cod')">착불만</button>
+          <button class="quick-btn" onclick="selectByFilter('prepaid')">선불만</button>
+          <button class="quick-btn" onclick="selectAll(false)">선택 해제</button>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-check"><input type="checkbox" id="selectAllCheck" onchange="selectAllVisible(this.checked)"></th>
+              <th>No.</th><th>주문일</th><th>수령인</th><th>연락처</th>
+              <th>우편번호</th><th>주소</th><th>수량</th><th>결제</th>
+              <th>특이사항</th><th>배송요청</th>
+            </tr>
+          </thead>
+          <tbody id="orderTbody"></tbody>
+        </table>
+      </div>
+      <div class="info" id="loadInfo"></div>
+    </div>
+
+    <!-- 시트 2: 묶음배송 안내 -->
+    <div class="sheet-content" id="sheet-bundle">
+      <div class="sheet-title" style="font-size:18px; letter-spacing:2px">묶음배송 대상 목록</div>
+      <div class="sheet-subtitle" id="bundleSubtitle"></div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>그룹</th><th>수령인</th><th>연락처</th>
+              <th>우편번호</th><th>주소</th>
+              <th>주문건수</th><th>총 수량</th><th>결제</th>
+            </tr>
+          </thead>
+          <tbody id="bundleTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 시트 3: 배송비 규칙 -->
+    <div class="sheet-content" id="sheet-rule">
+      <div class="sheet-title" style="font-size:18px; letter-spacing:2px">배송비 계산 규칙</div>
+      <div class="sheet-subtitle">제품 1병 = $10 | 배송비: 1병 $2, 이후 병당 $1 추가 | 배송비 미입금 시 착불</div>
+
+      <div class="rule-table table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>병수</th><th>제품가</th><th>배송비 (선불)</th><th>선불 총액</th>
+            </tr>
+          </thead>
+          <tbody id="ruleTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="emptyState" class="empty-state">
+    <div class="icon">📋</div>
+    <div style="font-size:15px; margin-bottom:5px; color:#555">주문을 불러와주세요</div>
+    <div style="font-size:12px">"불러오기"를 눌러 신규주문 시트에서 데이터를 가져옵니다</div>
+  </div>
+</div>
+
+<!-- 다운로드 모달 -->
+<div class="modal-overlay" id="downloadModal">
+  <div class="modal">
+    <h3>다운로드 옵션 선택</h3>
+    <div class="option" onclick="setDownloadScope('selected')">
+      <input type="radio" name="scope" value="selected" id="scope-sel" checked>
+      <div>
+        <div class="option-text">✓ 선택한 항목만 (<span id="selScopeCnt">0</span>건)</div>
+        <div class="option-desc">체크박스로 선택한 주문만</div>
+      </div>
+    </div>
+    <div class="option" onclick="setDownloadScope('visible')">
+      <input type="radio" name="scope" value="visible" id="scope-vis">
+      <div>
+        <div class="option-text">👀 현재 보이는 항목 (<span id="visScopeCnt">0</span>건)</div>
+        <div class="option-desc">필터·검색으로 보이는 주문만</div>
+      </div>
+    </div>
+    <div class="option" onclick="setDownloadScope('all')">
+      <input type="radio" name="scope" value="all" id="scope-all">
+      <div>
+        <div class="option-text">📦 전체 주문 (<span id="allScopeCnt">0</span>건)</div>
+        <div class="option-desc">불러온 모든 주문</div>
+      </div>
+    </div>
+    <div style="border-top:1px solid #eee; margin-top:14px; padding-top:14px">
+      <div style="font-size:12px; color:#666; margin-bottom:8px; font-weight:600">파일 형식</div>
+      <div class="option" onclick="setDownloadFormat('csv')">
+        <input type="radio" name="format" value="csv" id="fmt-csv" checked>
+        <div class="option-text">CSV (엑셀에서 열림)</div>
+      </div>
+      <div class="option" onclick="setDownloadFormat('tsv')">
+        <input type="radio" name="format" value="tsv" id="fmt-tsv">
+        <div class="option-text">TSV (탭 구분, 시트 붙여넣기용)</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeDownloadModal()">취소</button>
+      <button class="btn-accent" onclick="executeDownload()">다운로드</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let orders = [];
+let bundleGroups = [];
+let selectedIds = new Set();
+let currentFilter = 'all';
+let currentSheet = 'order';
+let downloadScope = 'selected';
+let downloadFormat = 'csv';
+const GROUP_COLORS = ['#fff2cc','#e2efda','#ddebf7','#fce4d6','#e4dfec','#deebf7','#ffe699'];
+
+function calcPayment(amount) {
+  if (amount % 10 === 0) return { qty: amount/10, ship: 0, type: '착불', note: '' };
+  if ((amount - 1) % 11 === 0) {
+    const qty = (amount - 1) / 11;
+    return { qty, ship: qty + 1, type: '선불', note: '' };
+  }
+  const qty = Math.floor(amount / 10);
+  const ship = amount % 10;
+  const expected = qty + 1;
+  return { qty, ship, type: '오류', note: qty + '병 배송비 $' + expected + ' 예상이나 $' + ship + '만 입금 (부족 $' + (expected-ship) + ')' };
+}
+
+function splitAddr(addr) {
+  if (!addr) return { zip: '', addr: '' };
+  const m = String(addr).trim().match(/^(\d{5})\s+(.+)$/);
+  if (m) return { zip: m[1], addr: m[2].trim() };
+  return { zip: '', addr: String(addr).trim() };
+}
+
+function normAddr(a) {
+  if (!a) return '';
+  return a.replace(/\s+/g, '').toLowerCase();
+}
+
+function switchSheet(sheetId) {
+  currentSheet = sheetId;
+  document.querySelectorAll('.sheet-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('.sheet-tab[data-sheet="' + sheetId + '"]').classList.add('active');
+  document.querySelectorAll('.sheet-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('sheet-' + sheetId).classList.add('active');
+}
+
+function buildBundleGroups() {
+  const groups = {};
+  orders.forEach(o => {
+    const k = normAddr(o.addrOnly);
+    (groups[k] = groups[k] || []).push(o);
+  });
+
+  bundleGroups = [];
+  let num = 0;
+  Object.values(groups).forEach(arr => {
+    if (arr.length >= 2) {
+      num++;
+      const label = 'G' + num;
+      arr.forEach(o => o.group = label);
+      const names = [...new Set(arr.map(o => o.recipient))].join(', ');
+      const phones = [...new Set(arr.map(o => o.recipientPhone).filter(Boolean))].join(', ');
+      const payTypes = [...new Set(arr.map(o => o.type))].join(' / ');
+      bundleGroups.push({
+        label,
+        names,
+        phones,
+        zipcode: arr[0].zipcode,
+        address: arr[0].addrOnly,
+        count: arr.length,
+        totalQty: arr.reduce((s, o) => s + o.qty, 0),
+        payTypes
+      });
+    }
+  });
+  orders._groupCount = num;
+  orders._bundleOrderCount = bundleGroups.reduce((s, g) => s + g.count, 0);
+}
+
+function loadOrders() {
+  const btn = document.getElementById('loadBtn');
+  btn.disabled = true;
+  btn.textContent = '불러오는 중...';
+  document.getElementById('errorBox').innerHTML = '';
+  document.getElementById('tabsWrap').style.display = 'none';
+  document.getElementById('sheetContainer').style.display = 'none';
+  document.getElementById('emptyState').innerHTML = '<div class="loading"><div class="spinner"></div><div style="margin-top:12px">신규주문 시트 읽는 중...</div></div>';
+  document.getElementById('emptyState').style.display = 'block';
+
+  google.script.run
+    .withSuccessHandler(onOrdersLoaded)
+    .withFailureHandler(onLoadFail)
+    .getOrders();
+}
+
+function onOrdersLoaded(result) {
+  const btn = document.getElementById('loadBtn');
+  btn.disabled = false;
+  btn.innerHTML = '🔄 새로고침';
+
+  if (!result.success) {
+    showError(result.error || '불러오기 실패');
+    return;
+  }
+
+  const prevSelected = new Set(selectedIds);
+
+  orders = result.orders.map((o, i) => {
+    const p = calcPayment(o.amount);
+    const split = splitAddr(o.address);
+    return Object.assign({}, o, p, {
+      idx: i,
+      zipcode: split.zip,
+      addrOnly: split.addr,
+      group: ''
+    });
+  });
+
+  buildBundleGroups();
+
+  selectedIds = new Set();
+  orders.forEach(o => {
+    if (prevSelected.has(o.orderNo)) selectedIds.add(o.orderNo);
+  });
+
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('tabsWrap').style.display = 'block';
+  document.getElementById('sheetContainer').style.display = 'block';
+  document.getElementById('downloadBtn').disabled = false;
+  document.getElementById('loadInfo').textContent = '마지막 업데이트: ' + new Date().toLocaleString('ko-KR') + ' · ' + orders.length + '건 로드됨';
+
+  renderAll();
+  showToast('✓ ' + orders.length + '건 불러옴');
+}
+
+function onLoadFail(err) {
+  const btn = document.getElementById('loadBtn');
+  btn.disabled = false;
+  btn.innerHTML = '🔄 불러오기';
+  showError('구글시트 접근 실패: ' + (err.message || err));
+}
+
+function showError(msg) {
+  document.getElementById('errorBox').innerHTML = '<div class="error-box"><strong>오류</strong><br>' + msg + '</div>';
+  document.getElementById('emptyState').style.display = 'block';
+  document.getElementById('emptyState').innerHTML = '<div class="icon">⚠️</div><div>데이터를 불러올 수 없습니다</div>';
+}
+
+function renderAll() {
+  renderOrderSummary();
+  renderOrders();
+  renderBundles();
+  renderRules();
+
+  document.getElementById('tab-count-order').textContent = orders.length;
+  document.getElementById('tab-count-bundle').textContent = bundleGroups.length + '그룹';
+}
+
+function renderOrderSummary() {
+  const total = orders.length;
+  const totalQty = orders.reduce((s,o) => s + o.qty, 0);
+  const totalAmt = orders.reduce((s,o) => s + o.amount, 0);
+  const totalShip = orders.reduce((s,o) => s + o.ship, 0);
+  const errCount = orders.filter(o => o.type === '오류').length;
+  const codCount = orders.filter(o => o.type === '착불').length;
+  const prepaidCount = orders.filter(o => o.type === '선불').length;
+
+  document.getElementById('orderSummary').textContent =
+    '총 ' + total + '건 (착불 ' + codCount + ' / 선불 ' + prepaidCount + ' / 오류 ' + errCount + ')  |  ' +
+    '총 수량 ' + totalQty + '병  |  입금 합계 $ ' + totalAmt + '  |  선입금 배송비 $ ' + totalShip;
+
+  document.getElementById('statusBar').innerHTML =
+    '<div class="stat"><div class="stat-label">전체</div><div class="stat-value">' + total + '건</div></div>' +
+    '<div class="stat"><div class="stat-label">총 수량</div><div class="stat-value">' + totalQty + '병</div></div>' +
+    '<div class="stat"><div class="stat-label">착불 / 선불</div><div class="stat-value" style="font-size:15px">' + codCount + ' / ' + prepaidCount + '</div></div>' +
+    '<div class="stat err"><div class="stat-label">결제 오류</div><div class="stat-value">' + errCount + '건</div></div>' +
+    '<div class="stat"><div class="stat-label">입금 합계</div><div class="stat-value" style="font-size:15px">$' + totalAmt + '</div></div>' +
+    '<div class="stat"><div class="stat-label">배송비 선입금</div><div class="stat-value" style="font-size:15px">$' + totalShip + '</div></div>' +
+    '<div class="stat"><div class="stat-label">묶음 그룹</div><div class="stat-value">' + (orders._groupCount || 0) + '</div></div>';
+
+  document.getElementById('c-all').textContent = total;
+  document.getElementById('c-error').textContent = errCount;
+  document.getElementById('c-group').textContent = orders.filter(o=>o.group).length;
+  document.getElementById('c-cod').textContent = codCount;
+  document.getElementById('c-prepaid').textContent = prepaidCount;
+}
+
+function formatDate(s) {
+  if (!s) return '';
+  const parts = s.split('-');
+  return parts.length === 3 ? parts[1] + '/' + parts[2] : s;
+}
+
+function getGroupColor(group) {
+  if (!group) return null;
+  const num = parseInt(group.slice(1)) - 1;
+  return GROUP_COLORS[num % GROUP_COLORS.length];
+}
+
+function getFilteredOrders() {
+  const search = document.getElementById('searchBox').value.toLowerCase();
+  const sorted = [...orders].sort((a,b) => {
+    const errA = a.type === '오류' ? 0 : 1;
+    const errB = b.type === '오류' ? 0 : 1;
+    if (errA !== errB) return errA - errB;
+    const gA = a.group || 'Z' + String(a.idx).padStart(3,'0');
+    const gB = b.group || 'Z' + String(b.idx).padStart(3,'0');
+    return gA.localeCompare(gB);
+  });
+
+  return sorted.filter(o => {
+    if (currentFilter === 'error' && o.type !== '오류') return false;
+    if (currentFilter === 'group' && !o.group) return false;
+    if (currentFilter === 'cod' && o.type !== '착불') return false;
+    if (currentFilter === 'prepaid' && o.type !== '선불') return false;
+    if (search) {
+      const hay = (o.recipient + ' ' + o.addrOnly + ' ' + o.zipcode + ' ' + o.recipientPhone).toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+}
+
+function renderOrders() {
+  updateSelectionBar();
+  const tbody = document.getElementById('orderTbody');
+  const filtered = getFilteredOrders();
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding:30px; color:#999">조건에 맞는 주문이 없습니다</td></tr>';
+    return;
+  }
+
+  let html = filtered.map((o, i) => {
+    const groupColor = getGroupColor(o.group);
+    const rowStyle = groupColor ? ' style="--group-color:' + groupColor + '"' : '';
+    const isSelected = selectedIds.has(o.orderNo);
+    const rowClass = [o.group ? 'group-row' : '', isSelected ? 'selected' : ''].filter(Boolean).join(' ');
+
+    const payBadge =
+      o.type === '오류' ? '<span class="badge badge-error">오류</span>' :
+      o.type === '선불' ? '<span class="badge badge-prepaid">선불</span>' :
+      '<span class="badge badge-cod">착불</span>';
+
+    return '<tr class="' + rowClass + '"' + rowStyle + '>' +
+      '<td class="col-check"><input type="checkbox" ' + (isSelected ? 'checked' : '') + ' onchange="toggleSelect(\'' + escapeAttr(o.orderNo) + '\', this.checked)"></td>' +
+      '<td class="col-no">' + (i+1) + '</td>' +
+      '<td class="col-date">' + formatDate(o.receivedAt) + '</td>' +
+      '<td class="col-name">' + escapeHtml(o.recipient) + '</td>' +
+      '<td class="col-phone">' + escapeHtml(o.recipientPhone) + '</td>' +
+      '<td class="col-zip">' + escapeHtml(o.zipcode) + '</td>' +
+      '<td class="col-addr">' + escapeHtml(o.addrOnly) + '</td>' +
+      '<td class="col-qty">' + o.qty + '병</td>' +
+      '<td class="col-pay">' + payBadge + '</td>' +
+      '<td class="col-note">' + (o.note ? '<span class="note-alert">' + o.note + '</span>' : '') + '</td>' +
+      '<td class="col-req">' + escapeHtml(o.request) + '</td>' +
+      '</tr>';
+  }).join('');
+
+  // 합계 행 (필터 반영 안 된 전체 기준)
+  const totalQty = orders.reduce((s,o) => s + o.qty, 0);
+  const totalAmt = orders.reduce((s,o) => s + o.amount, 0);
+  const totalShip = orders.reduce((s,o) => s + o.ship, 0);
+  const codN = orders.filter(o => o.type === '착불').length;
+  const prepaidN = orders.filter(o => o.type === '선불').length;
+  const errN = orders.filter(o => o.type === '오류').length;
+
+  html += '<tr class="total-row">' +
+    '<td colspan="7">합계</td>' +
+    '<td>' + totalQty + '병</td>' +
+    '<td>착 ' + codN + ' / 선 ' + prepaidN + ' / 오 ' + errN + '</td>' +
+    '<td>배송비 $' + totalShip + '</td>' +
+    '<td>총 $' + totalAmt + '</td>' +
+    '</tr>';
+
+  tbody.innerHTML = html;
+
+  const allVisibleSelected = filtered.length > 0 && filtered.every(o => selectedIds.has(o.orderNo));
+  document.getElementById('selectAllCheck').checked = allVisibleSelected;
+}
+
+function renderBundles() {
+  const tbody = document.getElementById('bundleTbody');
+  const subtitle = document.getElementById('bundleSubtitle');
+
+  if (bundleGroups.length === 0) {
+    subtitle.textContent = '묶음배송 대상 없음';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:40px; color:#999">동일 주소로 2건 이상 주문된 건이 없습니다</td></tr>';
+    return;
+  }
+
+  subtitle.textContent = '동일 주소로 2건 이상 주문된 건 — 총 ' + bundleGroups.length + '그룹, ' + (orders._bundleOrderCount || 0) + '건';
+
+  tbody.innerHTML = bundleGroups.map(g => {
+    const color = getGroupColor(g.label);
+    const rowStyle = ' style="--group-color:' + color + '"';
+    return '<tr class="group-row"' + rowStyle + '>' +
+      '<td style="text-align:center"><span class="group-tag">' + g.label + '</span></td>' +
+      '<td>' + escapeHtml(g.names) + '</td>' +
+      '<td style="font-family:monospace; font-size:11px">' + escapeHtml(g.phones) + '</td>' +
+      '<td class="col-zip">' + escapeHtml(g.zipcode) + '</td>' +
+      '<td>' + escapeHtml(g.address) + '</td>' +
+      '<td style="text-align:center; font-weight:700">' + g.count + '건</td>' +
+      '<td style="text-align:center; font-weight:700">' + g.totalQty + '병</td>' +
+      '<td style="text-align:center">' + escapeHtml(g.payTypes) + '</td>' +
+      '</tr>';
+  }).join('');
+}
+
+function renderRules() {
+  const tbody = document.getElementById('ruleTbody');
+  let html = '';
+  for (let n = 1; n <= 20; n++) {
+    html += '<tr>' +
+      '<td style="font-weight:700">' + n + '병</td>' +
+      '<td>$ ' + (n*10) + '</td>' +
+      '<td>$ ' + (n+1) + '</td>' +
+      '<td style="font-weight:700; color:#305496">$ ' + (n*10 + n + 1) + '</td>' +
+      '</tr>';
+  }
+  tbody.innerHTML = html;
+}
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escapeAttr(s) {
+  return escapeHtml(s).replace(/'/g,'&#39;');
+}
+
+function toggleSelect(orderNo, checked) {
+  if (checked) selectedIds.add(orderNo);
+  else selectedIds.delete(orderNo);
+  renderOrders();
+}
+
+function selectAllVisible(checked) {
+  const filtered = getFilteredOrders();
+  filtered.forEach(o => {
+    if (checked) selectedIds.add(o.orderNo);
+    else selectedIds.delete(o.orderNo);
+  });
+  renderOrders();
+}
+
+function selectAll(checked) {
+  if (checked) orders.forEach(o => selectedIds.add(o.orderNo));
+  else selectedIds.clear();
+  renderOrders();
+}
+
+function selectByFilter(filterType) {
+  selectedIds.clear();
+  orders.forEach(o => {
+    if (filterType === 'error' && o.type === '오류') selectedIds.add(o.orderNo);
+    else if (filterType === 'group' && o.group) selectedIds.add(o.orderNo);
+    else if (filterType === 'cod' && o.type === '착불') selectedIds.add(o.orderNo);
+    else if (filterType === 'prepaid' && o.type === '선불') selectedIds.add(o.orderNo);
+  });
+  renderOrders();
+  showToast(selectedIds.size + '건 선택됨');
+}
+
+function updateSelectionBar() {
+  const bar = document.getElementById('selectionBar');
+  if (orders.length === 0) { bar.classList.remove('active'); return; }
+  bar.classList.add('active');
+  document.getElementById('selCount').textContent = selectedIds.size + '건 선택됨';
+}
+
+function openDownloadModal() {
+  if (orders.length === 0) return;
+  document.getElementById('selScopeCnt').textContent = selectedIds.size;
+  document.getElementById('visScopeCnt').textContent = getFilteredOrders().length;
+  document.getElementById('allScopeCnt').textContent = orders.length;
+  if (selectedIds.size > 0) {
+    downloadScope = 'selected';
+    document.getElementById('scope-sel').checked = true;
+  } else {
+    downloadScope = 'visible';
+    document.getElementById('scope-vis').checked = true;
+  }
+  document.getElementById('downloadModal').classList.add('show');
+}
+
+function closeDownloadModal() {
+  document.getElementById('downloadModal').classList.remove('show');
+}
+
+function setDownloadScope(s) {
+  downloadScope = s;
+  document.getElementById('scope-' + (s==='selected'?'sel':s==='visible'?'vis':'all')).checked = true;
+}
+
+function setDownloadFormat(f) {
+  downloadFormat = f;
+  document.getElementById('fmt-' + f).checked = true;
+}
+
+function executeDownload() {
+  let targets;
+  if (downloadScope === 'selected') targets = orders.filter(o => selectedIds.has(o.orderNo));
+  else if (downloadScope === 'visible') targets = getFilteredOrders();
+  else targets = [...orders];
+
+  if (targets.length === 0) { showToast('⚠ 다운로드할 항목이 없습니다'); return; }
+
+  const headers = ['No.','주문일','수령인','연락처','우편번호','주소','수량','결제','특이사항','배송요청','입금금액'];
+  const rows = targets.map((o, i) => [
+    i+1, o.receivedAt, o.recipient, o.recipientPhone, o.zipcode, o.addrOnly,
+    o.qty+'병', o.type, o.note, o.request, '$' + o.amount
+  ]);
+
+  const sep = downloadFormat === 'tsv' ? '\t' : ',';
+  const ext = downloadFormat;
+  const mime = downloadFormat === 'tsv' ? 'text/tab-separated-values' : 'text/csv';
+
+  const escapeCell = (c) => {
+    const s = String(c == null ? '' : c);
+    if (downloadFormat === 'tsv') return s.replace(/\t/g, ' ').replace(/\n/g, ' ');
+    return '"' + s.replace(/"/g, '""') + '"';
+  };
+
+  const content = [headers, ...rows].map(r => r.map(escapeCell).join(sep)).join('\n');
+  const blob = new Blob(['\uFEFF' + content], { type: mime + ';charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const scopeLabel = downloadScope === 'selected' ? '선택' : downloadScope === 'visible' ? '필터' : '전체';
+  a.href = url;
+  a.download = '주문내역_' + scopeLabel + '_' + new Date().toISOString().slice(0,10) + '.' + ext;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  closeDownloadModal();
+  showToast('✓ ' + targets.length + '건 다운로드 완료');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    currentFilter = chip.dataset.filter;
+    renderOrders();
+  });
+});
+
+document.getElementById('downloadModal').addEventListener('click', (e) => {
+  if (e.target.id === 'downloadModal') closeDownloadModal();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeDownloadModal();
+});
+
+// 초기 배송비 규칙은 미리 채우기 (데이터 없이도 보임)
+renderRules();
+</script>
+</body>
+</html>
