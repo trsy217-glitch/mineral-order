@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>배송 관리</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f2f5;
+  --card:#fff;
+  --primary:#1a73e8;
+  --primary-light:#e8f0fe;
+  --green:#0d904f;
+  --green-bg:#e6f4ea;
+  --orange:#e8710a;
+  --orange-bg:#fef3e2;
+  --text:#1a1a1a;
+  --text2:#5f6368;
+  --border:#dadce0;
+  --radius:12px;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh}
+
+/* 헤더 */
+.top-bar{
+  background:var(--card);
+  border-bottom:1px solid var(--border);
+  padding:14px 20px;
+  position:sticky;top:0;z-index:100;
+}
+.top-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.top-bar h1{font-size:1.15rem;font-weight:700;color:var(--primary);white-space:nowrap}
+.top-bar h1 span{font-weight:400;color:var(--text2);font-size:.85rem;margin-left:8px}
+.top-actions{display:flex;align-items:center;gap:10px}
+.btn-refresh{
+  padding:8px 18px;background:var(--primary);color:#fff;border:none;border-radius:8px;
+  font-size:.85rem;font-weight:600;cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;gap:6px;
+}
+.btn-refresh:hover{background:#1557b0}
+.btn-refresh:disabled{opacity:.5;cursor:default}
+.badge-count{
+  background:var(--primary-light);color:var(--primary);
+  font-size:.8rem;font-weight:700;padding:4px 12px;border-radius:20px;
+}
+
+/* 요약 카드 */
+.summary-strip{max-width:1200px;margin:20px auto 0;padding:0 16px;display:flex;gap:12px;flex-wrap:wrap}
+.stat-card{
+  flex:1 1 140px;background:var(--card);border-radius:var(--radius);padding:16px 20px;
+  box-shadow:var(--shadow);min-width:130px;
+}
+.stat-card .label{font-size:.75rem;color:var(--text2);margin-bottom:4px;font-weight:500}
+.stat-card .num{font-size:1.5rem;font-weight:700}
+.stat-card .num.green{color:var(--green)}
+.stat-card .num.orange{color:var(--orange)}
+.stat-card .num.blue{color:var(--primary)}
+
+/* 테이블 영역 */
+.table-wrap{max-width:1200px;margin:16px auto 40px;padding:0 16px}
+.table-card{
+  background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;
+}
+.table-header{
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+.table-header h2{font-size:.95rem;font-weight:700}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap}
+.filter-btn{
+  padding:6px 14px;border:1px solid var(--border);border-radius:20px;
+  font-size:.78rem;font-weight:500;cursor:pointer;background:var(--card);
+  font-family:inherit;color:var(--text2);transition:all .15s;
+}
+.filter-btn:hover{border-color:var(--primary);color:var(--primary)}
+.filter-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:.82rem;min-width:900px}
+thead{background:#f8f9fa;position:sticky;top:0}
+th{
+  padding:11px 14px;text-align:left;font-weight:600;color:var(--text2);
+  border-bottom:2px solid var(--border);white-space:nowrap;font-size:.78rem;
+  letter-spacing:.02em;
+}
+td{padding:10px 14px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+tr:hover td{background:#fafbfc}
+
+/* 셀 스타일 */
+.tag{
+  display:inline-block;padding:3px 10px;border-radius:6px;
+  font-size:.75rem;font-weight:600;white-space:nowrap;
+}
+.tag-prepaid{background:var(--green-bg);color:var(--green)}
+.tag-collect{background:var(--orange-bg);color:var(--orange)}
+.cell-postcode{
+  font-family:'SF Mono','Fira Code',monospace;font-size:.78rem;
+  color:var(--primary);font-weight:500;
+}
+.cell-qty{font-weight:700;font-size:.95rem;text-align:center}
+.cell-phone{font-family:'SF Mono','Fira Code',monospace;font-size:.78rem;white-space:nowrap}
+
+/* 로딩/빈 상태 */
+.state-msg{padding:60px 20px;text-align:center;color:var(--text2);font-size:.9rem}
+.state-msg .icon{font-size:2.5rem;margin-bottom:12px;display:block}
+.loading-spinner{
+  width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--primary);
+  border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 14px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* 토스트 */
+.toast{
+  position:fixed;bottom:30px;left:50%;transform:translateX(-50%);
+  background:#333;color:#fff;padding:10px 22px;border-radius:30px;
+  font-size:.85rem;z-index:5000;display:none;white-space:nowrap;
+}
+
+@media(max-width:640px){
+  .top-inner{flex-direction:column;align-items:flex-start}
+  .summary-strip{flex-direction:column}
+  .stat-card{flex:1 1 100%}
+  .table-header{flex-direction:column;align-items:flex-start}
+}
+</style>
+</head>
+<body>
+
+<!-- 상단 바 -->
+<div class="top-bar">
+  <div class="top-inner">
+    <h1>📦 배송 관리<span>신규주문 기반</span></h1>
+    <div class="top-actions">
+      <span class="badge-count" id="totalBadge">0건</span>
+      <button class="btn-refresh" id="btnRefresh" onclick="loadData()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        새로고침
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 요약 -->
+<div class="summary-strip">
+  <div class="stat-card"><div class="label">전체 대기</div><div class="num blue" id="statTotal">-</div></div>
+  <div class="stat-card"><div class="label">선불</div><div class="num green" id="statPrepaid">-</div></div>
+  <div class="stat-card"><div class="label">착불</div><div class="num orange" id="statCollect">-</div></div>
+  <div class="stat-card"><div class="label">총 수량</div><div class="num" id="statQty">-</div></div>
+</div>
+
+<!-- 테이블 -->
+<div class="table-wrap">
+  <div class="table-card">
+    <div class="table-header">
+      <h2>배송 목록</h2>
+      <div class="filter-row">
+        <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">전체</button>
+        <button class="filter-btn" data-filter="선불" onclick="setFilter('선불',this)">선불</button>
+        <button class="filter-btn" data-filter="착불" onclick="setFilter('착불',this)">착불</button>
+      </div>
+    </div>
+    <div class="tbl-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>결제구분</th>
+            <th>수량</th>
+            <th>우편번호</th>
+            <th>주소</th>
+            <th>주문자</th>
+            <th>주문자 연락처</th>
+            <th>수령인</th>
+            <th>수령인 연락처</th>
+            <th>배송요청</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="10" class="state-msg"><div class="loading-spinner"></div>데이터를 불러오는 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ★ 본인의 Google Apps Script 웹앱 URL로 교체하세요
+var SHEET_URL = 'https://script.google.com/macros/s/AKfycbz02I8uwK30NarGzM7C3iYUgp7DzXBmtboxKg9oNLU8ze5AcYoxcXTjKPwPzg19a8h8/exec';
+
+var allOrders = [];
+var currentFilter = 'all';
+
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(function(){ t.style.display = 'none'; }, 2500);
+}
+
+function loadData() {
+  var btn = document.getElementById('btnRefresh');
+  btn.disabled = true;
+  document.getElementById('tableBody').innerHTML =
+    '<tr><td colspan="10" class="state-msg"><div class="loading-spinner"></div>데이터를 불러오는 중...</td></tr>';
+
+  var callbackName = 'shippingCb_' + Date.now();
+  window[callbackName] = function(result) {
+    btn.disabled = false;
+    delete window[callbackName];
+    if (result.success) {
+      allOrders = result.orders || [];
+      updateSummary();
+      renderTable();
+    } else {
+      document.getElementById('tableBody').innerHTML =
+        '<tr><td colspan="10" class="state-msg"><span class="icon">⚠️</span>데이터 로드 실패</td></tr>';
+      toast('오류: ' + (result.error || '알 수 없음'));
+    }
+  };
+
+  var script = document.createElement('script');
+  script.src = SHEET_URL + '?action=shipping&callback=' + callbackName;
+  script.onerror = function() {
+    btn.disabled = false;
+    document.getElementById('tableBody').innerHTML =
+      '<tr><td colspan="10" class="state-msg"><span class="icon">🔌</span>서버 연결 실패</td></tr>';
+  };
+  document.body.appendChild(script);
+}
+
+function updateSummary() {
+  var prepaid = 0, collect = 0, totalQty = 0;
+  allOrders.forEach(function(o) {
+    if (o.payType === '선불') prepaid++;
+    else collect++;
+    totalQty += o.quantity;
+  });
+  document.getElementById('statTotal').textContent = allOrders.length + '건';
+  document.getElementById('statPrepaid').textContent = prepaid + '건';
+  document.getElementById('statCollect').textContent = collect + '건';
+  document.getElementById('statQty').textContent = totalQty + '개';
+  document.getElementById('totalBadge').textContent = allOrders.length + '건';
+}
+
+function getFiltered() {
+  if (currentFilter === 'all') return allOrders;
+  return allOrders.filter(function(o){ return o.payType === currentFilter; });
+}
+
+function renderTable() {
+  var tbody = document.getElementById('tableBody');
+  var list = getFiltered();
+
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" class="state-msg"><span class="icon">📭</span>대기 중인 주문이 없습니다</td></tr>';
+    return;
+  }
+
+  var html = '';
+  list.forEach(function(o, idx) {
+    var tagClass = o.payType === '선불' ? 'tag-prepaid' : 'tag-collect';
+    html += '<tr>'
+      + '<td>' + (idx + 1) + '</td>'
+      + '<td><span class="tag ' + tagClass + '">' + o.payType + '</span></td>'
+      + '<td class="cell-qty">' + o.quantity + '</td>'
+      + '<td class="cell-postcode">' + escHtml(o.postcode) + '</td>'
+      + '<td>' + escHtml(o.address) + '</td>'
+      + '<td>' + escHtml(o.ordererName) + '</td>'
+      + '<td class="cell-phone">' + escHtml(o.ordererPhone) + '</td>'
+      + '<td>' + escHtml(o.receiverName) + '</td>'
+      + '<td class="cell-phone">' + escHtml(o.receiverPhone) + '</td>'
+      + '<td>' + escHtml(o.deliveryNote || '-') + '</td>'
+      + '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active'); });
+  el.classList.add('active');
+  renderTable();
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// 페이지 로드 시 자동 조회
+loadData();
+</script>
+</body>
+</html>
