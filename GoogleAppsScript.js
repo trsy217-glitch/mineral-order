@@ -1,18 +1,22 @@
 /**
  * ============================================================
- * 오륜 미네랄 주문 시스템 v3.1 (수정)
+ * 오륜 미네랄 주문 시스템 v3 (최종)
  * ============================================================
  * 
- * ★ v3 대비 수정사항 ★
- * 1. saveOrder → updateWalletTracking 호출 시 payProof, orderNum 추가 전달
- * 2. updateWalletTracking 함수 시그니처에 payProof, orderNum 추가
- * 3. 지갑주문내역에 TxID 정상 기록 + BscScan 링크 설정
- * 4. 주문번호도 saveOrder에서 생성한 것을 그대로 사용
+ * ★ 기존 GoogleAppsScript.js 코드를 전부 지우고
+ *   이 코드를 통째로 붙여넣으세요 ★
  * 
- * 적용 방법:
+ * 시트 구조: 18열
+ * 주문번호 | 접수시간 | 주문상태 | 송금일시 | 주문수량 | 송금금액
+ * 입금내역 | DMAX지갑 | 주문자이름 | 주문자전화
+ * 수령인이름 | 수령인전화 | 우편번호 | 주소
+ * 배송요청 | 택배사 | 운송장번호 | 발송날짜
+ * 
+ * 적용 순서:
  * 1. 기존 코드 전부 지우고 이 코드 붙여넣기 → 저장
- * 2. 배포 > 배포 관리 > 연필 > 새 버전 > 배포
- * 3. (선택) buildWalletTracking 실행하면 기존 데이터로 지갑추적 재구축
+ * 2. fixMisalignedRows 실행 (밀린 행 복구)
+ * 3. createTrigger 실행
+ * 4. 배포 > 배포 관리 > 연필 > 새 버전 > 배포
  * ============================================================
  */
 
@@ -181,10 +185,10 @@ function saveOrder(p) {
     }
   }
   
-  // ★ 지갑 주소 추적 시트 업데이트 — payProof, baseOrderNum 추가 전달 ★
+  // ★ 지갑 주소 추적 시트 업데이트 ★
   if (dmaxWallet && dmaxWallet.indexOf('0x') === 0) {
     try {
-      updateWalletTracking(dmaxWallet, p.ordererName || '', totalQty, totalAmount, timestamp, payProof, baseOrderNum);
+      updateWalletTracking(dmaxWallet, p.ordererName || '', totalQty, totalAmount, timestamp, payProof);
     } catch(e) {
       // 지갑 추적 실패해도 주문은 정상 처리
       Logger.log('지갑 추적 오류: ' + e.toString());
@@ -639,6 +643,7 @@ function fixMisalignedRows() {
 
 // ──────────────────────────────────────
 // ★ 완료 시트 운송장번호 복구 ★
+// Invalid Date나 깨진 운송장번호를 displayValue로 복구
 // ──────────────────────────────────────
 function fixTrackingNumbers() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -646,7 +651,7 @@ function fixTrackingNumbers() {
   if (!sheet || sheet.getLastRow() <= 1) { Logger.log('완료 시트 없음'); return; }
   
   var col = detectColumns(sheet);
-  var trackCol1 = col.tracking + 1;
+  var trackCol1 = col.tracking + 1; // 1-based
   var lastRow = sheet.getLastRow();
   var fixedCount = 0;
   
@@ -655,19 +660,24 @@ function fixTrackingNumbers() {
     var val = cell.getValue();
     var display = cell.getDisplayValue();
     
+    // Invalid Date 또는 Date 객체인 경우
     if (val instanceof Date || String(val) === 'Invalid Date' || display === 'Invalid Date') {
+      // 원본 값을 복구할 수 없으면 빈값으로
       Logger.log('행 ' + r + ': 운송장 깨짐 (val=' + val + ', display=' + display + ')');
+      // 셀을 텍스트 서식으로 변경
       cell.setNumberFormat('@');
       if (display && display !== 'Invalid Date') {
         cell.setValue(display);
       }
       fixedCount++;
     } else if (val && typeof val === 'number') {
+      // 숫자로 저장된 운송장번호를 텍스트로 변환
       cell.setNumberFormat('@').setValue(String(val).replace(/\.0$/, ''));
       fixedCount++;
     }
   }
   
+  // 운송장번호 열 전체를 텍스트 서식으로 설정
   sheet.getRange(2, trackCol1, lastRow - 1, 1).setNumberFormat('@');
   
   Logger.log('=== ' + fixedCount + '건 운송장번호 복구 완료 ===');
@@ -870,10 +880,8 @@ function getWalletDetailHeaders() {
   return ['지갑주소', '주문번호', '주문일시', '주문자이름', '주문수량', '송금금액', 'TxID'];
 }
 
-// ──────────────────────────────────────
-// ★ 수정됨: payProof, orderNum 파라미터 추가 ★
-// ──────────────────────────────────────
-function updateWalletTracking(walletAddr, ordererName, qty, amount, timestamp, payProof, orderNum) {
+// 주문 시 지갑 추적 업데이트
+function updateWalletTracking(walletAddr, ordererName, qty, amount, timestamp, payProof) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   
   // === 지갑요약 시트 ===
@@ -953,31 +961,18 @@ function updateWalletTracking(walletAddr, ordererName, qty, amount, timestamp, p
     detailSheet.setColumnWidth(7, 380);
   }
   
-  // ★ 수정: saveOrder에서 전달받은 orderNum 사용 (없으면 시간 기반 생성) ★
-  var finalOrderNum = orderNum || ('ORN' + Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyMMddHHmmss'));
-  
-  // ★ 수정: payProof(TxID)를 정상적으로 기록 ★
-  var txid = payProof || '';
+  // 주문번호는 saveOrder에서 생성된 것을 사용 (여기서는 시간 기반으로 매칭)
+  var orderNum = 'ORN' + Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyMMddHHmmss');
   
   detailSheet.appendRow([
     walletAddr,
-    finalOrderNum,
+    orderNum,
     timestamp,
     ordererName,
     qty,
     amount,
-    txid
+    payProof || ''
   ]);
-  
-  // ★ 추가: TxID에 BscScan 링크 설정 ★
-  if (txid && (txid.indexOf('0x') === 0 || txid.length >= 60)) {
-    var detailLastRow = detailSheet.getLastRow();
-    var richTextTx = SpreadsheetApp.newRichTextValue()
-      .setText(txid)
-      .setLinkUrl('https://bscscan.com/tx/' + txid)
-      .build();
-    detailSheet.getRange(detailLastRow, 7).setRichTextValue(richTextTx);
-  }
 }
 
 // 기존 주문 데이터로 지갑추적 시트 일괄 생성
@@ -1031,13 +1026,13 @@ function buildWalletTracking() {
       var walletAddr = String(row[col.dmaxWallet] || '').trim();
       if (!walletAddr || walletAddr.indexOf('0x') !== 0) continue;
       var walletKey = walletAddr.toLowerCase();
-      var orderNumVal = row[0];
+      var orderNum = row[0];
       var orderTime = row[1];
       var ordererName = row[col.ordererName] || '';
       var qty = parseInt(row[col.orderQty >= 0 ? col.orderQty : col.payAmount]) || 0;
       var amount = parseFloat(row[col.payAmount]) || 0;
       var txid = row[col.payProof] || '';
-      var parentOrder = orderNumVal.replace(/-\d+$/, '');
+      var parentOrder = orderNum.replace(/-\d+$/, '');
       if (!wallets[walletKey]) {
         wallets[walletKey] = {
           address: walletAddr, name: ordererName,
@@ -1051,7 +1046,7 @@ function buildWalletTracking() {
       if (orderTime && orderTime > w.lastDate) w.lastDate = orderTime;
       w.totalQty += qty;
       if (!w.orders[parentOrder]) { w.orders[parentOrder] = true; w.totalAmount += amount; }
-      w.details.push([walletAddr, orderNumVal, orderTime, ordererName, qty, amount, txid]);
+      w.details.push([walletAddr, orderNum, orderTime, ordererName, qty, amount, txid]);
     }
   }
   
@@ -1063,17 +1058,23 @@ function buildWalletTracking() {
     var w = wallets[walletKeys[k]];
     var orderCount = Object.keys(w.orders).length;
     var staking = existingStaking[walletKeys[k]] || 0;
-    var rowNum = k + 2;
+    var rowNum = k + 2; // 1-based, 헤더 다음
     
+    // A~G열: 데이터 (G열=스테이킹금액은 수기)
     summarySheet.getRange(rowNum, 1, 1, 7).setValues([[
       w.address, w.name, w.firstDate, orderCount, w.totalQty, w.totalAmount, staking
     ]]);
     
+    // H열: 주문가능수량 = 스테이킹금액/100 (수식)
     summarySheet.getRange(rowNum, 8).setFormula('=IF(G' + rowNum + '=0,0,FLOOR(G' + rowNum + '/100))');
+    // I열: 잔여수량 = 주문가능수량 - 총주문수량 (수식)
     summarySheet.getRange(rowNum, 9).setFormula('=H' + rowNum + '-E' + rowNum);
+    // J열: 상태 (수식)
     summarySheet.getRange(rowNum, 10).setFormula('=IF(G' + rowNum + '=0,"미설정",IF(E' + rowNum + '>H' + rowNum + ',"초과","정상"))');
+    // K열: 최근주문일
     summarySheet.getRange(rowNum, 11).setValue(w.lastDate);
     
+    // 지갑주소 링크
     if (w.address.indexOf('0x') === 0) {
       var rt = SpreadsheetApp.newRichTextValue()
         .setText(w.address)
@@ -1087,14 +1088,17 @@ function buildWalletTracking() {
     }
   }
   
+  // G열(스테이킹금액) 서식을 숫자로 강제 (날짜 자동변환 방지)
   if (walletKeys.length > 0) {
     summarySheet.getRange(2, 7, walletKeys.length, 1).setNumberFormat('#,##0');
   }
   
+  // 상세 내역
   if (detailRows.length > 0) {
     detailSheet.getRange(2, 1, detailRows.length, 7).setValues(detailRows);
   }
   
+  // 조건부 서식: 초과 시 빨간색, 미설정 시 노란색
   applyWalletConditionalFormatting(summarySheet);
   
   setWalletColumnWidths(summarySheet);
@@ -1106,10 +1110,11 @@ function buildWalletTracking() {
   Logger.log('=== 지갑추적 완료: ' + walletKeys.length + '개 지갑, ' + detailRows.length + '건 주문 ===');
 }
 
-// 조건부 서식 설정
+// 조건부 서식 설정 (스테이킹금액 수정 시 자동으로 색상 반영)
 function applyWalletConditionalFormatting(sheet) {
   var rules = [];
   
+  // 초과: J열이 "초과"이면 행 전체 빨간색
   var overRule = SpreadsheetApp.newConditionalFormatRule()
     .whenFormulaSatisfied('=$J2="초과"')
     .setBackground('#ffcdd2')
@@ -1118,6 +1123,7 @@ function applyWalletConditionalFormatting(sheet) {
     .build();
   rules.push(overRule);
   
+  // 미설정: J열이 "미설정"이면 행 전체 노란색
   var unsetRule = SpreadsheetApp.newConditionalFormatRule()
     .whenFormulaSatisfied('=$J2="미설정"')
     .setBackground('#fff8e1')
@@ -1129,20 +1135,26 @@ function applyWalletConditionalFormatting(sheet) {
   sheet.setConditionalFormatRules(rules);
 }
 
+// 열 너비 설정 헬퍼
 function setWalletColumnWidths(sheet) {
-  sheet.setColumnWidth(1, 380);
-  sheet.setColumnWidth(2, 100);
-  sheet.setColumnWidth(3, 130);
-  sheet.setColumnWidth(4, 90);
-  sheet.setColumnWidth(5, 90);
-  sheet.setColumnWidth(6, 100);
-  sheet.setColumnWidth(7, 120);
-  sheet.setColumnWidth(8, 100);
-  sheet.setColumnWidth(9, 90);
-  sheet.setColumnWidth(10, 80);
-  sheet.setColumnWidth(11, 130);
+  sheet.setColumnWidth(1, 380);  // 지갑주소
+  sheet.setColumnWidth(2, 100);  // 주문자이름
+  sheet.setColumnWidth(3, 130);  // 최초등록일
+  sheet.setColumnWidth(4, 90);   // 총주문횟수
+  sheet.setColumnWidth(5, 90);   // 총주문수량
+  sheet.setColumnWidth(6, 100);  // 총송금금액
+  sheet.setColumnWidth(7, 120);  // 스테이킹금액
+  sheet.setColumnWidth(8, 100);  // 주문가능수량
+  sheet.setColumnWidth(9, 90);   // 잔여수량
+  sheet.setColumnWidth(10, 80);  // 상태
+  sheet.setColumnWidth(11, 130); // 최근주문일
 }
 
+// 스테이킹 금액 변경 시 전체 상태 재계산
+// 관리자가 스테이킹금액(F열)을 수정하면 자동 재계산
+// 실행: 함수 선택 > recalcWalletStatus > ▶ 실행
+// 지갑추적 시트 수식/서식 재적용
+// G열(스테이킹금액) 입력 후 수식이 깨졌을 때 복구용
 function recalcWalletStatus() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName('지갑추적');
@@ -1152,13 +1164,16 @@ function recalcWalletStatus() {
   var updated = 0;
   
   for (var r = 2; r <= lastRow; r++) {
+    // G열 숫자 서식 강제
     sheet.getRange(r, 7).setNumberFormat('#,##0');
+    // H,I,J열 수식 재설정
     sheet.getRange(r, 8).setFormula('=IF(G' + r + '=0,0,FLOOR(G' + r + '/100))');
     sheet.getRange(r, 9).setFormula('=H' + r + '-E' + r);
     sheet.getRange(r, 10).setFormula('=IF(G' + r + '=0,"미설정",IF(E' + r + '>H' + r + ',"초과","정상"))');
     updated++;
   }
   
+  // 조건부 서식 재적용
   applyWalletConditionalFormatting(sheet);
   
   Logger.log('=== ' + updated + '건 수식/서식 재적용 완료 ===');
@@ -1183,4 +1198,20 @@ function onOpen() {
     .addItem('트리거 재설정', 'createTrigger')
     .addItem('시트 초기설정', 'setupSheet')
     .addToUi();
+}function testWallet2() {
+  Logger.log('테스트 시작');
+  try {
+    updateWalletTracking('0xTestWallet999', '테스트유저', 1, 12, '2026-05-13 20:00:00', '0xTestTxId123');
+    Logger.log('성공!');
+  } catch(e) {
+    Logger.log('오류: ' + e.toString());
+  }
+}function testWallet2() {
+  Logger.log('테스트 시작');
+  try {
+    updateWalletTracking('0xTestWallet999', '테스트유저', 1, 12, '2026-05-13 20:00:00', '0xTestTxId123');
+    Logger.log('성공!');
+  } catch(e) {
+    Logger.log('오류: ' + e.toString());
+  }
 }
