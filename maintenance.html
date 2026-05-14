@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>잠시 점검 중 - 오륜 미네랄</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:linear-gradient(160deg,#e8f8e0,#e3f2fd 50%,#f3e5f5);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;color:#2e3a3f}
+.box{max-width:480px;width:100%;background:#fff;border-radius:20px;padding:40px 28px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.1)}
+.icon{font-size:4rem;margin-bottom:16px}
+h1{font-size:1.4rem;color:#43a047;margin-bottom:12px;font-weight:700}
+p{color:#607d8b;font-size:.95rem;line-height:1.6;margin-bottom:10px}
+.time{margin-top:24px;padding:16px;background:#f5f5f5;border-radius:12px;font-size:.9rem;color:#2e3a3f}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="icon">🔧</div>
+  <h1>잠시 점검 중입니다</h1>
+  <p>더 나은 서비스를 위해<br>시스템을 업데이트하고 있습니다.</p>
+  <p>잠시 후 다시 이용해 주세요.</p>
+  <div class="time">
+    예상 완료 시간: 약 5~10분 이내
+  </div>
+</div>
+<script>
+// 1분마다 자동 새로고침 (점검 완료되면 정상 페이지로 자동 복귀)
+setTimeout(function(){ location.reload(); }, 60000);
+</script>
+</body>
+</html>
