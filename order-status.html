@@ -425,10 +425,20 @@ function buildStakingCard(s) {
   var allowed = Number(s.allowedQty || 0);
   var ordered = Number(s.orderedQty || 0);
   var remaining = Number(s.remainingQty || 0);
-  var isOver = remaining < 0;
-  var remLabel = isOver ? '주문 초과' : '추가 주문 가능';
-  var remColor = isOver ? '#d32f2f' : '#2e7d32';
-  var remShow = isOver ? remaining : remaining; // 음수면 그대로 표시
+  // ★ 스테이킹 미설정(관리자 처리 전): 주문가능수량이 아직 0이라 음수가 뜨므로,
+  //   "주문 초과"로 겁주지 말고 '접수 완료 + 관리자 확인 후 반영'으로 안내
+  var stakingNotSet = (staking <= 0 || allowed <= 0);
+  var isOver = (!stakingNotSet && remaining < 0);
+
+  var remLabel, remColor, remValueHtml;
+  if (stakingNotSet) {
+    remLabel = '주문 접수';  remColor = '#2e7d32';  remValueHtml = '✅ 완료';
+  } else if (isOver) {
+    remLabel = '주문 초과';  remColor = '#d32f2f';  remValueHtml = remaining.toLocaleString() + ' <span class="st-unit">개</span>';
+  } else {
+    remLabel = '추가 주문 가능';  remColor = '#2e7d32';  remValueHtml = remaining.toLocaleString() + ' <span class="st-unit">개</span>';
+  }
+  var allowedHtml = stakingNotSet ? '확인 중' : (allowed.toLocaleString() + ' <span class="st-unit">개</span>');
 
   // 진행 바 (주문완료 / 주문가능)
   var pct = allowed > 0 ? Math.min(100, Math.round(ordered / allowed * 100)) : 0;
@@ -450,9 +460,16 @@ function buildStakingCard(s) {
     ? '<div class="st-promo"><span class="st-promo-tag">🎁 프로모션 적용</span>' +
       '<span class="st-promo-txt">1,000 USDT 스테이킹당 <b>20개</b> 주문 가능 <s>(평소 10개)</s></span></div>'
     : '';
-  var noteText = promoApplied
-    ? '※ 프로모션 기간: 1,000 USDT당 미네랄 20개 주문 가능 (1,000·2,000·3,000 USDT → 20·40·60개 …)'
-    : '※ 100 USDT 스테이킹 당 미네랄 1개 주문 가능';
+  var noteText = stakingNotSet
+    ? '✅ 주문이 정상 접수되었습니다.<br>스테이킹·주문가능 수량은 관리자 확인(보통 낮 12시경) 후 반영됩니다.'
+    : (promoApplied
+        ? '※ 프로모션 기간: 1,000 USDT당 미네랄 20개 주문 가능 (1,000·2,000·3,000 USDT → 20·40·60개 …)'
+        : '※ 100 USDT 스테이킹 당 미네랄 1개 주문 가능');
+
+  var barHtml = stakingNotSet
+    ? '<div class="st-bar-caption">' + ordered.toLocaleString() + '개 주문 접수됨</div>'
+    : '<div class="st-bar"><div class="st-bar-fill" style="width:' + pct + '%"></div></div>' +
+      '<div class="st-bar-caption">' + ordered.toLocaleString() + ' / ' + allowed.toLocaleString() + '개 주문 (' + pct + '%)</div>';
 
   return '<div class="card staking-card">' +
     '<div class="staking-head"><span class="st-left"><span class="st-ico">💎</span><span>내 스테이킹 현황</span></span>' + dateHtml + '</div>' +
@@ -460,12 +477,11 @@ function buildStakingCard(s) {
     promoBanner +
     '<div class="staking-grid">' +
       '<div class="st-item"><div class="st-label">스테이킹 금액</div><div class="st-value">' + staking.toLocaleString() + ' <span class="st-unit">USDT</span></div></div>' +
-      '<div class="st-item"><div class="st-label">주문 가능 수량</div><div class="st-value">' + allowed.toLocaleString() + ' <span class="st-unit">개</span></div></div>' +
+      '<div class="st-item"><div class="st-label">주문 가능 수량</div><div class="st-value">' + allowedHtml + '</div></div>' +
       '<div class="st-item"><div class="st-label">주문 완료</div><div class="st-value">' + ordered.toLocaleString() + ' <span class="st-unit">개</span></div></div>' +
-      '<div class="st-item st-highlight"><div class="st-label">' + remLabel + '</div><div class="st-value" style="color:' + remColor + '">' + remShow.toLocaleString() + ' <span class="st-unit">개</span></div></div>' +
+      '<div class="st-item st-highlight"><div class="st-label">' + remLabel + '</div><div class="st-value" style="color:' + remColor + '">' + remValueHtml + '</div></div>' +
     '</div>' +
-    '<div class="st-bar"><div class="st-bar-fill" style="width:' + pct + '%"></div></div>' +
-    '<div class="st-bar-caption">' + ordered.toLocaleString() + ' / ' + allowed.toLocaleString() + '개 주문 (' + pct + '%)</div>' +
+    barHtml +
     '<div class="st-note">' + noteText + '</div>' +
   '</div>';
 }
